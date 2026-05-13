@@ -5,6 +5,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 
+  <!-- Preload Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+
   <!-- Primary Meta Tags -->
   <title>{% block title %}MARA — Message At Random Anonymous{% endblock %}</title>
   <meta name="title" content="{% block meta_title %}MARA — Message At Random Anonymous{% endblock %}"/>
@@ -77,8 +83,8 @@
 
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
-  <!-- Skeleton Loader (hidden by default) -->
+<body class="bg-gray-50 min-h-screen">
+  <!-- Skeleton Loader (centralisé via style.css) -->
   <div id="skeleton-loader" class="hidden min-h-screen bg-gray-50 pb-20">
     <div class="bg-mara px-4 pt-10 pb-10 text-center">
       <div class="skeleton skeleton-avatar mx-auto mb-3"></div>
@@ -97,21 +103,17 @@
     {% block content %}{% endblock %}
   </div>
 
-  <!-- In-app push notification UI -->
+  <!-- In-app push notification UI (centralisé via style.css) -->
   <div id="in-app-push" class="fixed top-4 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl p-4 w-11/12 max-w-sm z-[100] transform -translate-y-[150%] opacity-0 transition-all duration-500 ease-out flex items-center gap-4 cursor-pointer border border-gray-100">
-    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-inner" style="background:linear-gradient(135deg,#FF5078,#FF8C42)">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
+    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-inner bg-mara">
+      {% include 'includes/icons/envelope.html' with class='w-6 h-6' %}
     </div>
     <div class="flex-1">
       <h4 class="font-extrabold text-gray-800 text-sm mb-0.5">Nouveau Message !</h4>
       <p id="in-app-push-text" class="text-xs text-gray-500 font-semibold truncate max-w-[200px]"></p>
     </div>
     <button onclick="hideInAppPush(event)" class="text-gray-300 hover:text-gray-500 p-1">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-      </svg>
+      {% include 'includes/icons/close.html' with class='h-5 w-5' %}
     </button>
   </div>
 
