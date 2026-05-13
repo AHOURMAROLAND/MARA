@@ -46,6 +46,7 @@ class MaraChat {
     }
 
     init() {
+        console.log('[MARA] Initializing Chat v1.5...');
         this.setupTheme();
         this.connectWebSocket();
         this.setupEventListeners();
@@ -147,9 +148,10 @@ class MaraChat {
         document.addEventListener('contextmenu', (e) => {
             if (e.target.closest('.message-bubble')) {
                 e.preventDefault();
+                console.log('[MARA] Native context menu blocked');
                 return false;
             }
-        }, false);
+        }, true); // Use capture phase to be sure
     }
 
     startIntervals() {
@@ -566,6 +568,7 @@ class MaraChat {
     }
 
     scrollToMessage(messageId) {
+        console.log('[MARA] Scrolling to message:', messageId);
         const el = document.getElementById(`msg-${messageId}`);
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });

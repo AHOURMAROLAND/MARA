@@ -46,17 +46,19 @@
       <button onclick="copyGroupLink()" class="p-2 bg-pink-50 text-pink-500 rounded-xl hover:bg-pink-100 transition shadow-sm border border-pink-100" aria-label="Copier le lien du groupe">
         {% include 'includes/icons/share.html' with class='h-5 w-5' %}
       </button>
-      <button id="theme-toggle" class="p-2 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 transition shadow-sm border border-gray-100" aria-label="Changer de thème">
+      <button id="theme-toggle" class="p-2 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 transition shadow-sm border border-gray-100 flex items-center gap-1" aria-label="Changer de thème">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
         </svg>
+        <span class="text-[10px] font-bold hidden sm:inline">Thème</span>
       </button>
     </div>
   </div>
 
   <!-- Nickname Banner (Small) -->
-  <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white text-[10px] py-1.5 px-4 text-center font-bold uppercase tracking-widest shrink-0">
-    Ton pseudo : <span id="current-nickname" class="text-pink-400">{{ participant.nickname }}</span>
+  <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white text-[10px] py-1.5 px-4 flex justify-between items-center font-bold uppercase tracking-widest shrink-0">
+    <div>Ton pseudo : <span id="current-nickname" class="text-pink-400">{{ participant.nickname }}</span></div>
+    <div class="opacity-30">MARA v1.5</div>
   </div>
 
   <!-- Messages List -->
@@ -93,7 +95,7 @@
               </div>
             {% endif %}
             
-            <p class="text-[0.95rem] leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
+            <p class="text-[0.95rem] leading-relaxed whitespace-pre-wrap">{{ m.text|default:"" }}</p>
             
             <div class="flex items-center justify-end gap-2 mt-1">
               <p class="text-[10px] opacity-60">{{ m.created_at|date:"H:i" }}</p>
@@ -264,7 +266,7 @@
   </div>
 </div>
 
-<script src="{% static 'js/chat.js' %}"></script>
+<script src="{% static 'js/chat.js' %}?v=1.5"></script>
 <script>
   // Initialize MARA Chat
   const maraChat = new MaraChat({

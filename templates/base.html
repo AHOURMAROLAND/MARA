@@ -79,13 +79,13 @@
   </script>
 
   <!-- Custom Global Style -->
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1.5">
 
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen">
   <!-- Skeleton Loader (centralisé via style.css) -->
-  <div id="skeleton-loader" class="hidden min-h-screen bg-gray-50 pb-20">
+  <div id="skeleton-loader" class="hidden min-h-screen pb-20">
     <div class="bg-mara px-4 pt-10 pb-10 text-center">
       <div class="skeleton skeleton-avatar mx-auto mb-3"></div>
       <div class="skeleton skeleton-title" style="background: rgba(255,255,255,0.3);"></div>
