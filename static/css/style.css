@@ -252,10 +252,13 @@ body {
 }
 
 .message-bubble {
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none; /* Disable native iOS long press menu */
-}
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none !important; /* Disable native iOS long press menu */
+    touch-action: manipulation;
+  }
 @keyframes typing { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 .animate-typing { animation: typing 1s infinite; }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }

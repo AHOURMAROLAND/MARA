@@ -34,10 +34,13 @@ class MaraChat {
             currentNickname: document.getElementById('current-nickname'),
             reactionPicker: document.getElementById('reaction-picker'),
             contextMenu: document.getElementById('message-context-menu'),
-            menuDeleteOption: document.getElementById('menu-delete-option')
+            menuDeleteOption: document.getElementById('menu-delete-option'),
+            confirmModal: document.getElementById('custom-confirm-modal'),
+            confirmDeleteBtn: document.getElementById('confirm-delete-btn')
         };
 
         this.activeMessageData = null;
+        this.reconnectAttempts = 0;
         this.init();
     }
 
@@ -50,6 +53,11 @@ class MaraChat {
     }
 
     connectWebSocket() {
+        if (this.reconnectAttempts > 10) {
+            console.error('[MARA] Too many WebSocket reconnect attempts. Stopping.');
+            return;
+        }
+
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/chat/${this.groupLinkId}/`;
         
@@ -58,11 +66,12 @@ class MaraChat {
 
         this.socket.onopen = () => {
             console.log('[MARA] WebSocket connected successfully!');
+            this.reconnectAttempts = 0;
         };
 
         this.socket.onmessage = (e) => {
             const data = JSON.parse(e.data);
-            console.log('[MARA] WS Received:', data.type);
+            console.log('[MARA] WS Received:', data.type, data);
             
             if (data.type === 'chat_message') {
                 const m = data.message;
@@ -81,6 +90,7 @@ class MaraChat {
                 this.updateReactionUI(data.reaction);
             }
             else if (data.type === 'message_deleted') {
+                console.log('[MARA] Message deleted event received:', data.message_id);
                 const el = document.getElementById(`msg-${data.message_id}`);
                 if (el) {
                     el.style.opacity = '0';
@@ -90,9 +100,10 @@ class MaraChat {
             }
         };
 
-        this.socket.onclose = () => {
-            console.log('[MARA] WebSocket closed. Reconnecting...');
-            setTimeout(() => this.connectWebSocket(), 2000);
+        this.socket.onclose = (e) => {
+            console.log('[MARA] WebSocket closed. Reason:', e.code, e.reason);
+            this.reconnectAttempts++;
+            setTimeout(() => this.connectWebSocket(), 2000 * Math.min(this.reconnectAttempts, 5));
         };
 
         this.socket.onerror = (err) => {
@@ -125,6 +136,14 @@ class MaraChat {
                 document.querySelectorAll('.options-dropdown').forEach(d => d.classList.remove('active'));
             }
         });
+
+        // Global context menu blocker for message bubbles
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.closest('.message-bubble')) {
+                e.preventDefault();
+                return false;
+            }
+        }, false);
     }
 
     startIntervals() {
@@ -305,7 +324,13 @@ class MaraChat {
 
     // --- Context Menu ---
 
-    showContextMenu(messageId, nickname, text, isMe) {
+    showContextMenu(messageId, nickname, text, isMe, event) {
+        if (event) {
+            if (typeof event.preventDefault === 'function') event.preventDefault();
+            if (typeof event.stopPropagation === 'function') event.stopPropagation();
+        }
+        
+        console.log('[MARA] Opening context menu for:', messageId);
         this.activeMessageData = { id: messageId, nickname: nickname, text: text, isMe: isMe };
         
         if (isMe) {
@@ -372,6 +397,7 @@ class MaraChat {
 
     sendReaction(messageId, emoji) {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            console.log('[MARA] Sending reaction:', emoji, 'for msg:', messageId);
             this.socket.send(JSON.stringify({
                 'type': 'reaction',
                 'message_id': messageId,
@@ -379,8 +405,8 @@ class MaraChat {
                 'session_token': this.myToken
             }));
         } else {
-            // Optional: fallback to polling update if WS is down
             console.warn('[MARA] WebSocket not open for reaction');
+            alert("Connexion perdue. Reconnexion en cours...");
         }
     }
 
@@ -440,18 +466,30 @@ class MaraChat {
     }
 
     deleteMessage(messageId) {
-        if (!confirm("Supprimer ce message pour tout le monde ?")) return;
+        this.elements.confirmModal.classList.remove('hidden');
         
-        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(JSON.stringify({
-                'type': 'delete_message',
-                'message_id': messageId,
-                'session_token': this.myToken
-            }));
-        } else {
-            alert("Erreur de connexion. Impossible de supprimer le message pour le moment.");
-            console.error('[MARA] WebSocket not open for deletion');
-        }
+        // Remove old listeners to avoid double deletion
+        const newBtn = this.elements.confirmDeleteBtn.cloneNode(true);
+        this.elements.confirmDeleteBtn.parentNode.replaceChild(newBtn, this.elements.confirmDeleteBtn);
+        this.elements.confirmDeleteBtn = newBtn;
+
+        this.elements.confirmDeleteBtn.onclick = () => {
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                console.log('[MARA] Sending delete request for:', messageId);
+                this.socket.send(JSON.stringify({
+                    'type': 'delete_message',
+                    'message_id': messageId,
+                    'session_token': this.myToken
+                }));
+                this.hideConfirmModal();
+            } else {
+                alert("Erreur de connexion WebSocket.");
+            }
+        };
+    }
+
+    hideConfirmModal() {
+        this.elements.confirmModal.classList.add('hidden');
     }
 
     appendMessage(m) {
@@ -493,9 +531,9 @@ class MaraChat {
             </div>
             <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
                 <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me' : 'message-other'}" 
-                     onclick="maraChat.showContextMenu('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me})"
-                     oncontextmenu="event.preventDefault(); maraChat.showContextMenu('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me})"
-                     ontouchstart="maraChat.handleTouchStart('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me})"
+                     onclick="maraChat.showContextMenu('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me}, event)"
+                     oncontextmenu="maraChat.showContextMenu('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me}, event); return false;"
+                     ontouchstart="maraChat.handleTouchStart('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me}, event)"
                      ontouchend="maraChat.handleTouchEnd()">
                     ${parentHtml}
                     ${downloadBtn}
@@ -510,9 +548,9 @@ class MaraChat {
         this.elements.chatMessages.appendChild(div);
     }
 
-    handleTouchStart(messageId, nickname, text, isMe) {
+    handleTouchStart(messageId, nickname, text, isMe, event) {
         this.longPressTimer = setTimeout(() => {
-            this.showContextMenu(messageId, nickname, text, isMe);
+            this.showContextMenu(messageId, nickname, text, isMe, event);
         }, 500);
     }
 
