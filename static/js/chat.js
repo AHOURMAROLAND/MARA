@@ -329,8 +329,21 @@ class MaraChat {
     }
 
     updateReactionUI(reaction) {
-        const container = document.getElementById(`reactions-${reaction.message_id}`);
-        if (!container) return;
+        console.log('[MARA] Updating UI for reaction:', reaction);
+        // Find container by id
+        const containerId = `reactions-${reaction.message_id}`;
+        let container = document.getElementById(containerId);
+        
+        if (!container) {
+            console.warn(`[MARA] Container not found for ID: ${containerId}. Searching by data attribute...`);
+            // Fallback: search for a container that might have been dynamically added
+            container = document.querySelector(`[id="reactions-${reaction.message_id}"]`);
+        }
+
+        if (!container) {
+            console.error('[MARA] Could not find reaction container for message:', reaction.message_id);
+            return;
+        }
 
         let reactionEl = null;
         Array.from(container.children).forEach(child => {

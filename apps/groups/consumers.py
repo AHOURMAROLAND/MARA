@@ -69,6 +69,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif message_type == 'reaction':
             message_id = data.get('message_id')
             emoji = data.get('emoji')
+            print(f"[MARA] Reaction request: msg={message_id}, emoji={emoji}, token={session_token}")
             
             if message_id and emoji:
                 reaction_data = await self.save_reaction(session_token, message_id, emoji)
@@ -83,6 +84,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         elif message_type == 'delete_message':
             message_id = data.get('message_id')
+            print(f"[MARA] Delete request: msg={message_id}, token={session_token}")
             if message_id:
                 deleted_id = await self.delete_message(session_token, message_id)
                 if deleted_id:
@@ -129,13 +131,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def delete_message(self, session_token, message_id):
         try:
-            msg = GroupMessage.objects.get(id=message_id, sender_session_token=session_token)
+            msg = GroupMessage.objects.get(id=message_id)
+            # Permission check: must be the sender
+            if msg.sender_session_token != session_token:
+                print(f"Unauthorized deletion attempt by {session_token}")
+                return None
+            
             # Check 5 minutes limit
             if timezone.now() > msg.created_at + timezone.timedelta(minutes=5):
+                print(f"Deletion time limit exceeded for message {message_id}")
                 return None
             
             msg.delete()
             return str(message_id)
+        except GroupMessage.DoesNotExist:
+            print(f"Message {message_id} not found for deletion")
+            return None
         except Exception as e:
             print(f"Error deleting message: {e}")
             return None
@@ -152,7 +163,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_reaction(self, session_token, message_id, emoji):
         try:
-            msg = GroupMessage.objects.get(id=message_id, group__link_id=self.group_link_id)
+            # First try to get message by UUID
+            try:
+                msg = GroupMessage.objects.get(id=message_id, group__link_id=self.group_link_id)
+            except (GroupMessage.DoesNotExist, ValueError):
+                # Fallback: maybe message_id is a string that needs cleaning or it's not a UUID
+                print(f"Message {message_id} not found by direct ID lookup")
+                return None
             
             # Toggle reaction: if exists, delete it, else create it
             existing = GroupMessageReaction.objects.filter(message=msg, session_token=session_token, emoji=emoji)
@@ -171,10 +188,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'emoji': emoji,
                 'count': count,
                 'action': action,
-                'session_token': session_token # to know if it's "me"
+                'session_token': session_token 
             }
         except Exception as e:
             print(f"Error saving reaction: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     @database_sync_to_async
