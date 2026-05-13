@@ -12,9 +12,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="chat-wrapper bg-gray-50 max-chat-width">
-  <!-- Chat Header -->
-  <div class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-sm shrink-0">
+<div class="chat-wrapper max-chat-width">
+  <!-- Header -->
+  <div class="chat-header sticky top-0 z-50 px-4 py-4 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
       <a href="/" class="p-2 -ml-2 text-gray-400 hover:text-gray-600 transition" aria-label="Retour à l'accueil">
         {% include 'includes/icons/back.html' with class='h-6 w-6' %}
@@ -46,6 +46,11 @@
       <button onclick="copyGroupLink()" class="p-2 bg-pink-50 text-pink-500 rounded-xl hover:bg-pink-100 transition shadow-sm border border-pink-100" aria-label="Copier le lien du groupe">
         {% include 'includes/icons/share.html' with class='h-5 w-5' %}
       </button>
+      <button id="theme-toggle" class="p-2 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 transition shadow-sm border border-gray-100" aria-label="Changer de thème">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -58,7 +63,7 @@
   <div id="chat-messages" class="chat-container flex-1 p-4 space-y-4">
     {% for m in messages_list %}
       <div id="msg-{{ m.id }}" class="flex flex-col {% if m.sender_session_token == request.session.ngl_token %}items-end{% else %}items-start{% endif %}">
-        <div class="nickname-tag {% if m.sender_session_token == request.session.ngl_token %}text-pink-500{% else %}text-gray-400{% endif %}">
+        <div class="nickname-tag {% if m.sender_session_token == request.session.ngl_token %}text-pink-500{% else %}text-gray-500{% endif %}">
           {{ m.sender_nickname }}
         </div>
         
@@ -70,7 +75,8 @@
                ontouchend="maraChat.handleTouchEnd()">
             
             {% if m.parent %}
-              <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden">
+              <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden cursor-pointer active:opacity-70" 
+                   onclick="event.stopPropagation(); maraChat.scrollToMessage('{{ m.parent.id }}')">
                 <span class="font-black uppercase block text-[8px] opacity-70">{{ m.parent.sender_nickname }}</span>
                 <span class="opacity-80 truncate block">{{ m.parent.text|default:"📸 Image" }}</span>
               </div>

@@ -36,7 +36,8 @@ class MaraChat {
             contextMenu: document.getElementById('message-context-menu'),
             menuDeleteOption: document.getElementById('menu-delete-option'),
             confirmModal: document.getElementById('custom-confirm-modal'),
-            confirmDeleteBtn: document.getElementById('confirm-delete-btn')
+            confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
+            themeToggle: document.getElementById('theme-toggle')
         };
 
         this.activeMessageData = null;
@@ -45,6 +46,7 @@ class MaraChat {
     }
 
     init() {
+        this.setupTheme();
         this.connectWebSocket();
         this.setupEventListeners();
         this.setVH();
@@ -112,6 +114,10 @@ class MaraChat {
     }
 
     setupEventListeners() {
+        if (this.elements.themeToggle) {
+            this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
+        }
+
         if (this.elements.messageInput) {
             this.elements.messageInput.addEventListener('input', () => {
                 this.elements.messageInput.style.height = 'auto';
@@ -166,6 +172,33 @@ class MaraChat {
                 }
             });
         }, 10000);
+    }
+
+    // --- Theme ---
+
+    setupTheme() {
+        const savedTheme = localStorage.getItem('mara-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        this.updateThemeIcon(savedTheme);
+    }
+
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('mara-theme', newTheme);
+        this.updateThemeIcon(newTheme);
+    }
+
+    updateThemeIcon(theme) {
+        if (!this.elements.themeToggle) return;
+        const icon = this.elements.themeToggle.querySelector('svg');
+        if (theme === 'dark') {
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />';
+        } else {
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />';
+        }
     }
 
     // --- Actions ---
@@ -398,9 +431,9 @@ class MaraChat {
         }
     }
 
-    sendReaction(messageId, emoji) {
+    async sendReaction(messageId, emoji) {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            console.log('[MARA] Sending reaction:', emoji, 'for msg:', messageId);
+            console.log('[MARA] Sending reaction via WS:', emoji, 'for msg:', messageId);
             this.socket.send(JSON.stringify({
                 'type': 'reaction',
                 'message_id': messageId,
@@ -408,8 +441,26 @@ class MaraChat {
                 'session_token': this.myToken
             }));
         } else {
-            console.warn('[MARA] WebSocket not open for reaction');
-            showToast("Connexion perdue. Reconnexion en cours...", "error");
+            console.log('[MARA] WS down, sending reaction via HTTP:', emoji, 'for msg:', messageId);
+            try {
+                const response = await fetch(`/groups/api/g/${this.groupLinkId}/react/${messageId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.csrfToken
+                    },
+                    body: JSON.stringify({ emoji: emoji })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.updateReactionUI(data.reaction);
+                } else {
+                    showToast(data.error || "Erreur lors de la réaction", "error");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Erreur réseau", "error");
+            }
         }
     }
 
@@ -469,17 +520,16 @@ class MaraChat {
         if (menu) menu.classList.toggle('active');
     }
 
-    deleteMessage(messageId) {
+    async deleteMessage(messageId) {
         this.elements.confirmModal.classList.remove('hidden');
         
-        // Remove old listeners to avoid double deletion
         const newBtn = this.elements.confirmDeleteBtn.cloneNode(true);
         this.elements.confirmDeleteBtn.parentNode.replaceChild(newBtn, this.elements.confirmDeleteBtn);
         this.elements.confirmDeleteBtn = newBtn;
 
-        this.elements.confirmDeleteBtn.onclick = () => {
+        this.elements.confirmDeleteBtn.onclick = async () => {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-                console.log('[MARA] Sending delete request for:', messageId);
+                console.log('[MARA] Sending delete request via WS:', messageId);
                 this.socket.send(JSON.stringify({
                     'type': 'delete_message',
                     'message_id': messageId,
@@ -487,13 +537,43 @@ class MaraChat {
                 }));
                 this.hideConfirmModal();
             } else {
-                showToast("Erreur de connexion WebSocket.", "error");
+                console.log('[MARA] WS down, sending delete request via HTTP:', messageId);
+                try {
+                    const response = await fetch(`/groups/api/g/${this.groupLinkId}/delete/${messageId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': this.csrfToken
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        const el = document.getElementById(`msg-${messageId}`);
+                        if (el) el.remove();
+                        this.hideConfirmModal();
+                    } else {
+                        showToast(data.error || "Erreur lors de la suppression", "error");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erreur réseau", "error");
+                }
             }
         };
     }
 
     hideConfirmModal() {
         this.elements.confirmModal.classList.add('hidden');
+    }
+
+    scrollToMessage(messageId) {
+        const el = document.getElementById(`msg-${messageId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('highlight-message');
+            setTimeout(() => el.classList.remove('highlight-message'), 2000);
+        } else {
+            showToast("Message trop ancien ou introuvable", "info");
+        }
     }
 
     appendMessage(m) {
@@ -511,7 +591,8 @@ class MaraChat {
         if (m.parent) {
             const parentText = m.parent.text || "📸 Image";
             parentHtml = `
-                <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden">
+                <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden cursor-pointer active:opacity-70" 
+                     onclick="event.stopPropagation(); maraChat.scrollToMessage('${m.parent.id}')">
                     <span class="font-black uppercase block text-[8px] opacity-70">${m.parent.sender_nickname}</span>
                     <span class="opacity-80 truncate block">${parentText}</span>
                 </div>

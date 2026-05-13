@@ -7,7 +7,7 @@ from apps.users.utils import get_owner_from_session, create_session, get_client_
 from apps.users.image_utils import optimize_message_image
 from django.core.files.base import ContentFile
 import bleach
-from .models import Group, GroupMessage, GroupParticipant
+from .models import Group, GroupMessage, GroupParticipant, GroupMessageReaction
 from .constants import BIZARRE_NAMES
 from datetime import timedelta
 import random
@@ -302,6 +302,100 @@ def get_group_messages(request, link_id):
         'active_count': GroupParticipant.objects.filter(group=group, last_activity__gt=timezone.now() - timedelta(minutes=2)).count(),
         'last_id': messages_query.last().created_at.isoformat() if messages_query.exists() else last_id
     })
+
+def delete_group_message_http(request, link_id, message_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    group = get_object_or_404(Group, link_id=link_id, is_active=True)
+    session_token = request.session.get('ngl_token')
+    
+    try:
+        msg = GroupMessage.objects.get(id=message_id, group=group)
+        
+        # Permission check
+        if msg.sender_session_token != session_token:
+            return JsonResponse({'error': 'Unauthorized'}, status=403)
+            
+        # Time limit check (5 minutes)
+        if timezone.now() > msg.created_at + timedelta(minutes=5):
+            return JsonResponse({'error': 'Délai de suppression dépassé'}, status=403)
+            
+        msg.delete()
+        
+        # Broadcast via WebSocket if possible
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{group.link_id}',
+                {
+                    'type': 'message_deleted',
+                    'message_id': str(message_id)
+                }
+            )
+        except:
+            pass
+            
+        return JsonResponse({'success': True})
+    except (GroupMessage.DoesNotExist, ValueError):
+        return JsonResponse({'error': 'Message not found'}, status=404)
+
+def react_group_message_http(request, link_id, message_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    group = get_object_or_404(Group, link_id=link_id, is_active=True)
+    session_token = request.session.get('ngl_token')
+    
+    try:
+        data = json.loads(request.body)
+        emoji = data.get('emoji')
+        if not emoji:
+            return JsonResponse({'error': 'Emoji required'}, status=400)
+            
+        msg = GroupMessage.objects.get(id=message_id, group=group)
+        
+        # Toggle reaction
+        existing = GroupMessageReaction.objects.filter(message=msg, session_token=session_token, emoji=emoji)
+        if existing.exists():
+            existing.delete()
+            action = 'removed'
+        else:
+            GroupMessageReaction.objects.create(message=msg, session_token=session_token, emoji=emoji)
+            action = 'added'
+            
+        count = GroupMessageReaction.objects.filter(message=msg, emoji=emoji).count()
+        
+        reaction_data = {
+            'message_id': str(msg.id),
+            'emoji': emoji,
+            'count': count,
+            'action': action,
+            'session_token': session_token 
+        }
+        
+        # Broadcast via WebSocket if possible
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{group.link_id}',
+                {
+                    'type': 'message_reaction',
+                    'reaction': reaction_data
+                }
+            )
+        except:
+            pass
+            
+        return JsonResponse({'success': True, 'reaction': reaction_data})
+    except (GroupMessage.DoesNotExist, ValueError):
+        return JsonResponse({'error': 'Message not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
 def group_settings(request, link_id):
     owner = get_owner_from_session(request)

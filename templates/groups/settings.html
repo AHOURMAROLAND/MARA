@@ -188,6 +188,7 @@
       });
       const data = await response.json();
       if (data.success) {
+        showToast("Permission modifiée", "success");
         const btn = document.getElementById(`btn-write-${participantId}`);
         if (data.can_write) {
           btn.className = "p-2 rounded-lg transition bg-green-50 text-green-500";
@@ -196,9 +197,12 @@
           btn.className = "p-2 rounded-lg transition bg-red-50 text-red-500";
           btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>';
         }
+      } else {
+        showToast("Erreur", "error");
       }
     } catch (err) {
       console.error(err);
+      showToast("Erreur", "error");
     }
   }
 

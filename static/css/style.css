@@ -4,15 +4,39 @@
 */
 
 :root {
-  /* Colors */r
+  /* Colors */
   --mara-pink: #FF5078;
   --mara-orange: #FF8C42;
   --mara-gradient: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%);
   --mara-gradient-soft: linear-gradient(135deg, rgba(255,80,120,0.1) 0%, rgba(255,140,66,0.1) 100%);
   
+  /* Theme Variables - Default Light */
+  --bg-color: #f3f4f6; /* slightly darker gray */
+  --text-color: #1f2937;
+  --bubble-other-bg: #ffffff;
+  --bubble-other-text: #1f2937;
+  --bubble-other-border: #e5e7eb;
+  --input-bg: #ffffff;
+  --header-bg: #ffffff;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
+
   /* Layout */
   --vh: 1vh;
   --safe-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Dark Theme overrides */
+[data-theme="dark"] {
+  --bg-color: #0a0a0a;
+  --text-color: #f3f4f6;
+  --bubble-other-bg: #1a1a1a;
+  --bubble-other-text: #e5e7eb;
+  --bubble-other-border: #262626;
+  --input-bg: #141414;
+  --header-bg: #000000;
+  --card-bg: #111111;
+  --border-color: #262626;
 }
 
 /* Global Reset */
@@ -23,10 +47,11 @@
 }
 
 body {
-  background-color: #f9fafb; /* gray-50 */
+  background-color: var(--bg-color);
   margin: 0;
   padding: 0;
-  color: #1f2937;
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* Common Components */
@@ -66,6 +91,7 @@ body {
 
 .message-bubble {
   max-width: 85%;
+  min-width: 60px; /* Prevent compression of short words like "salut" */
   position: relative;
   padding: 10px 14px !important;
   font-size: 0.95rem !important;
@@ -82,10 +108,20 @@ body {
 }
 
 .message-other {
-  background: white;
-  color: #1f2937;
+  background: var(--bubble-other-bg);
+  color: var(--bubble-other-text);
   border-bottom-left-radius: 4px !important;
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--bubble-other-border);
+}
+
+.highlight-message {
+  animation: highlight-pulse 2s ease-out;
+}
+
+@keyframes highlight-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 80, 120, 0.4); }
+  50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(255, 80, 120, 0); }
+  100% { transform: scale(1); }
 }
 
 .nickname-tag {
@@ -100,6 +136,7 @@ body {
 .message-options-btn {
   opacity: 0;
   transition: opacity 0.2s;
+  color: var(--text-color);
 }
 
 .group:hover .message-options-btn { opacity: 1; }
@@ -109,10 +146,10 @@ body {
   position: absolute;
   bottom: 100%;
   right: 0;
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--border-color);
   z-index: 40;
   min-width: 140px;
   overflow: hidden;
@@ -131,7 +168,7 @@ body {
   padding: 10px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-color);
   transition: background 0.2s;
   cursor: pointer;
   width: 100%;
@@ -139,7 +176,7 @@ body {
   background: transparent;
 }
 
-.option-item:hover { background: #f9fafb; }
+.option-item:hover { background: var(--bg-color); }
 .option-item.delete { color: #ef4444; }
 
 /* Reactions */
@@ -172,12 +209,19 @@ body {
 
 /* Input Area */
 .input-area {
-  background: white;
-  border-top: 1px solid #f3f4f6;
+  background: var(--input-bg);
+  border-top: 1px solid var(--border-color);
   padding: 1rem;
   padding-bottom: calc(var(--safe-bottom) + 10px) !important;
   flex-shrink: 0;
   box-shadow: 0 -8px 25px rgba(0,0,0,0.03);
+}
+
+/* Header */
+.chat-header {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.3s;
 }
 
 /* Inbox / Message Rows */
