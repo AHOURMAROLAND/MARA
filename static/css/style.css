@@ -1,6 +1,6 @@
 /* MARA Global Style - Unified Colors & UI Components */
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   --mara-pink: #FF5078;
@@ -10,7 +10,7 @@
 }
 
 * {
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -79,8 +79,8 @@ body {
 .message-bubble {
   max-width: 85%;
   position: relative;
-  padding: 14px 18px !important;
-  font-size: 1.15rem !important;
+  padding: 12px 16px !important;
+  font-size: 1.05rem !important;
   line-height: 1.4 !important;
   border-radius: 22px !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
@@ -100,7 +100,7 @@ body {
 }
 
 .nickname-tag {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 800;
   margin-bottom: 6px;
   text-transform: uppercase;

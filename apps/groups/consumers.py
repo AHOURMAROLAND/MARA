@@ -80,6 +80,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'reaction': reaction_data
                         }
                     )
+        
+        elif message_type == 'delete_message':
+            message_id = data.get('message_id')
+            if message_id:
+                deleted_id = await self.delete_message(session_token, message_id)
+                if deleted_id:
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'message_deleted',
+                            'message_id': deleted_id
+                        }
+                    )
 
     # Receive message from room group
     async def chat_message(self, event):
@@ -105,6 +118,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'message_reaction',
             'reaction': event['reaction']
         }))
+
+    async def message_deleted(self, event):
+        # Send deletion notification to WebSocket
+        await self.send(text_data=json.dumps({
+            'type': 'message_deleted',
+            'message_id': event['message_id']
+        }))
+
+    @database_sync_to_async
+    def delete_message(self, session_token, message_id):
+        try:
+            msg = GroupMessage.objects.get(id=message_id, sender_session_token=session_token)
+            # Check 5 minutes limit
+            if timezone.now() > msg.created_at + timezone.timedelta(minutes=5):
+                return None
+            
+            msg.delete()
+            return str(message_id)
+        except Exception as e:
+            print(f"Error deleting message: {e}")
+            return None
 
     @database_sync_to_async
     def get_nickname(self, session_token):
