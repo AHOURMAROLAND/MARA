@@ -254,5 +254,34 @@
       });
     })();
   </script>
+  <!-- Toast System Global -->
+  <div id="global-toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] flex flex-col gap-2 w-11/12 max-w-sm pointer-events-none"></div>
+
+  <script>
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('global-toast-container');
+        const toast = document.createElement('div');
+        const bgColor = type === 'error' ? 'bg-red-600' : (type === 'success' ? 'bg-green-600' : 'bg-gray-800');
+        
+        toast.className = `${bgColor} text-white text-sm rounded-2xl px-5 py-4 shadow-2xl flex items-center justify-between pointer-events-auto transform transition-all duration-500 translate-y-[-100%] opacity-0 mb-2`;
+        toast.innerHTML = `
+            <div class="flex items-center gap-3">
+                <p class="font-bold">${message}</p>
+            </div>
+        `;
+        
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+        }, 10);
+        
+        setTimeout(() => {
+            toast.style.transform = 'translateY(-100%)';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    }
+  </script>
 </body>
 </html>

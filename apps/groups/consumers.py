@@ -69,11 +69,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif message_type == 'reaction':
             message_id = data.get('message_id')
             emoji = data.get('emoji')
-            print(f"[MARA] Reaction request: msg={message_id}, emoji={emoji}, token={session_token}")
+            print(f"[MARA-WS] Reaction request: msg={message_id}, emoji={emoji}, token={session_token}")
             
             if message_id and emoji:
                 reaction_data = await self.save_reaction(session_token, message_id, emoji)
                 if reaction_data:
+                    print(f"[MARA-WS] Broadcasting reaction: {reaction_data}")
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
@@ -81,13 +82,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'reaction': reaction_data
                         }
                     )
+                else:
+                    print(f"[MARA-WS] Reaction save failed or ignored for msg={message_id}")
         
         elif message_type == 'delete_message':
             message_id = data.get('message_id')
-            print(f"[MARA] Delete request: msg={message_id}, token={session_token}")
+            print(f"[MARA-WS] Delete request: msg={message_id}, token={session_token}")
             if message_id:
                 deleted_id = await self.delete_message(session_token, message_id)
                 if deleted_id:
+                    print(f"[MARA-WS] Broadcasting deletion for msg={deleted_id}")
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
@@ -95,6 +99,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'message_id': deleted_id
                         }
                     )
+                else:
+                    print(f"[MARA-WS] Deletion failed or unauthorized for msg={message_id}")
 
     # Receive message from room group
     async def chat_message(self, event):
@@ -131,24 +137,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def delete_message(self, session_token, message_id):
         try:
-            msg = GroupMessage.objects.get(id=message_id)
+            import uuid
+            # Ensure message_id is a valid UUID
+            try:
+                valid_id = uuid.UUID(str(message_id))
+            except (ValueError, TypeError):
+                print(f"[MARA-DB] Invalid UUID format for deletion: {message_id}")
+                return None
+
+            msg = GroupMessage.objects.filter(id=valid_id).first()
+            if not msg:
+                print(f"[MARA-DB] Message {valid_id} not found in DB")
+                return None
+
             # Permission check: must be the sender
             if msg.sender_session_token != session_token:
-                print(f"Unauthorized deletion attempt by {session_token}")
+                print(f"[MARA-DB] Unauthorized deletion: msg_token={msg.sender_session_token}, user_token={session_token}")
                 return None
             
             # Check 5 minutes limit
             if timezone.now() > msg.created_at + timezone.timedelta(minutes=5):
-                print(f"Deletion time limit exceeded for message {message_id}")
+                print(f"[MARA-DB] Deletion timeout: created_at={msg.created_at}")
                 return None
             
             msg.delete()
+            print(f"[MARA-DB] Message {valid_id} deleted successfully")
             return str(message_id)
-        except GroupMessage.DoesNotExist:
-            print(f"Message {message_id} not found for deletion")
-            return None
         except Exception as e:
-            print(f"Error deleting message: {e}")
+            print(f"[MARA-DB] Error during deletion: {e}")
             return None
 
     @database_sync_to_async
@@ -163,12 +179,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_reaction(self, session_token, message_id, emoji):
         try:
-            # First try to get message by UUID
+            import uuid
+            # Ensure message_id is a valid UUID
             try:
-                msg = GroupMessage.objects.get(id=message_id, group__link_id=self.group_link_id)
-            except (GroupMessage.DoesNotExist, ValueError):
-                # Fallback: maybe message_id is a string that needs cleaning or it's not a UUID
-                print(f"Message {message_id} not found by direct ID lookup")
+                valid_id = uuid.UUID(str(message_id))
+            except (ValueError, TypeError):
+                print(f"[MARA-DB] Invalid UUID format for reaction: {message_id}")
+                return None
+
+            msg = GroupMessage.objects.filter(id=valid_id, group__link_id=self.group_link_id).first()
+            if not msg:
+                print(f"[MARA-DB] Message {valid_id} not found for reaction")
                 return None
             
             # Toggle reaction: if exists, delete it, else create it
@@ -176,9 +197,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if existing.exists():
                 existing.delete()
                 action = 'removed'
+                print(f"[MARA-DB] Reaction REMOVED: msg={valid_id}, emoji={emoji}")
             else:
                 GroupMessageReaction.objects.create(message=msg, session_token=session_token, emoji=emoji)
                 action = 'added'
+                print(f"[MARA-DB] Reaction ADDED: msg={valid_id}, emoji={emoji}")
             
             # Get new reaction counts for this message and emoji
             count = GroupMessageReaction.objects.filter(message=msg, emoji=emoji).count()
@@ -191,9 +214,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'session_token': session_token 
             }
         except Exception as e:
-            print(f"Error saving reaction: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"[MARA-DB] Error saving reaction: {e}")
             return None
 
     @database_sync_to_async

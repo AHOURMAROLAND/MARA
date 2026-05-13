@@ -199,11 +199,12 @@ class MaraChat {
             if (data.success) {
                 this.pollMessages();
             } else if (data.error) {
-                alert(data.error);
+                showToast(data.error, "error");
                 if (data.error.includes('banni')) window.location.reload();
             }
         } catch (err) {
             console.error(err);
+            showToast("Erreur lors de l'envoi", "error");
         } finally {
             this.elements.sendBtn.disabled = false;
         }
@@ -325,9 +326,11 @@ class MaraChat {
     // --- Context Menu ---
 
     showContextMenu(messageId, nickname, text, isMe, event) {
+        // Stop any event bubbling that might trigger native context menu
         if (event) {
             if (typeof event.preventDefault === 'function') event.preventDefault();
             if (typeof event.stopPropagation === 'function') event.stopPropagation();
+            if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
         }
         
         console.log('[MARA] Opening context menu for:', messageId);
@@ -406,7 +409,7 @@ class MaraChat {
             }));
         } else {
             console.warn('[MARA] WebSocket not open for reaction');
-            alert("Connexion perdue. Reconnexion en cours...");
+            showToast("Connexion perdue. Reconnexion en cours...", "error");
         }
     }
 
@@ -458,6 +461,7 @@ class MaraChat {
     // --- Message Management ---
 
     toggleOptionsMenu(messageId) {
+        console.log('[MARA] Toggling options for:', messageId);
         document.querySelectorAll('.options-dropdown').forEach(d => {
             if (d.id !== `options-${messageId}`) d.classList.remove('active');
         });
@@ -483,7 +487,7 @@ class MaraChat {
                 }));
                 this.hideConfirmModal();
             } else {
-                alert("Erreur de connexion WebSocket.");
+                showToast("Erreur de connexion WebSocket.", "error");
             }
         };
     }
@@ -563,6 +567,6 @@ class MaraChat {
 window.copyGroupLink = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-        alert("Lien du groupe copié !");
+        showToast("Lien du groupe copié !", "success");
     });
 };
