@@ -53,8 +53,12 @@ class MaraChat {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/chat/${this.groupLinkId}/`;
         
-        console.log('[MARA] Connecting to WebSocket:', wsUrl);
+        console.log('[MARA] Attempting WebSocket connection:', wsUrl);
         this.socket = new WebSocket(wsUrl);
+
+        this.socket.onopen = () => {
+            console.log('[MARA] WebSocket connected successfully!');
+        };
 
         this.socket.onmessage = (e) => {
             const data = JSON.parse(e.data);
@@ -374,6 +378,9 @@ class MaraChat {
                 'emoji': emoji,
                 'session_token': this.myToken
             }));
+        } else {
+            // Optional: fallback to polling update if WS is down
+            console.warn('[MARA] WebSocket not open for reaction');
         }
     }
 
@@ -434,12 +441,16 @@ class MaraChat {
 
     deleteMessage(messageId) {
         if (!confirm("Supprimer ce message pour tout le monde ?")) return;
+        
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(JSON.stringify({
                 'type': 'delete_message',
                 'message_id': messageId,
                 'session_token': this.myToken
             }));
+        } else {
+            alert("Erreur de connexion. Impossible de supprimer le message pour le moment.");
+            console.error('[MARA] WebSocket not open for deletion');
         }
     }
 

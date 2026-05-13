@@ -38,6 +38,7 @@ if not DEBUG:
             'BACKEND': 'channels_postgres.core.PostgresChannelLayer',
             'CONFIG': {
                 'ENGINE': 'django.db.backends.postgresql',
+                'URL': config('DATABASE_URL'),
             },
         },
     }
@@ -148,6 +149,8 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024   # 5 MB
 
 # Securite HTTPS (activer en prod)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 CSRF_COOKIE_SECURE = not DEBUG

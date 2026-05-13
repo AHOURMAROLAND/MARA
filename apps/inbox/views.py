@@ -221,6 +221,20 @@ def check_new_messages(request):
         })
         
     try:
+        # Validate if last_id is a valid UUID before filtering
+        from django.core.exceptions import ValidationError
+        try:
+            import uuid
+            uuid.UUID(str(last_id))
+        except (ValueError, TypeError):
+            # Not a valid UUID, reset to 0 logic
+            last_msg = Message.objects.filter(recipient=owner).order_by('created_at').last()
+            return JsonResponse({
+                'success': True, 
+                'has_new': False, 
+                'last_id': str(last_msg.id) if last_msg else '0'
+            })
+
         # Get the reference message to find newer ones
         ref_msg = Message.objects.filter(recipient=owner, id=last_id).first()
         if ref_msg:

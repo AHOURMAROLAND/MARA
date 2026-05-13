@@ -287,9 +287,10 @@ def get_group_messages(request, link_id):
             'image_url': m.image.url if m.image else None,
         }
         if m.parent:
+            parent_text = m.parent.text or "📸 Image"
             msg_data['parent'] = {
                 'id': str(m.parent.id),
-                'text': m.parent.text[:50] + '...' if len(m.parent.text) > 50 else m.parent.text,
+                'text': parent_text[:50] + '...' if len(parent_text) > 50 else parent_text,
                 'sender_nickname': m.parent.sender_nickname
             }
         new_messages.append(msg_data)

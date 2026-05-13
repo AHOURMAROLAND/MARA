@@ -139,7 +139,7 @@
         <div class="mb-4 rounded-xl overflow-hidden">
           <img src="{{ msg.image.url }}" alt="Image" class="w-full object-cover" style="max-height: 200px;"/>
         </div>
-        {% if msg.image_caption %}
+        {% if msg.image_caption and msg.image_caption.lower != 'none' %}
           <p class="text-gray-600 text-sm font-semibold mb-2">{{ msg.image_caption }}</p>
         {% endif %}
         {% endif %}
