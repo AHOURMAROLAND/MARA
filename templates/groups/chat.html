@@ -118,7 +118,7 @@
               </div>
             {% endif %}
             
-            <p class="text-base leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
+            <p class="text-[0.95rem] leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
             
             <div class="flex items-center justify-end gap-2 mt-1">
               <p class="text-[10px] opacity-60">{{ m.created_at|date:"H:i" }}</p>
@@ -176,8 +176,15 @@
   </div>
 
   <!-- Typing Indicator -->
-  <div id="typing-indicator" class="hidden px-4 py-1.5 bg-white/50 text-[10px] text-gray-400 font-bold italic shrink-0">
-    <span id="typing-text"></span>
+  <div id="typing-indicator" class="hidden px-4 py-2 bg-gray-50/80 text-[11px] text-pink-500 font-bold italic shrink-0 animate-typing border-t border-gray-100">
+    <div class="flex items-center gap-2">
+      <div class="flex gap-1">
+        <span class="w-1 h-1 bg-pink-400 rounded-full animate-bounce"></span>
+        <span class="w-1 h-1 bg-pink-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+        <span class="w-1 h-1 bg-pink-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+      </div>
+      <span id="typing-text"></span>
+    </div>
   </div>
 
   <!-- Input Area -->
@@ -256,16 +263,19 @@
   let typingTimeout = null;
   let activeReactionMessageId = null;
   let activeTypers = new Map();
+  let lastTypingSent = 0;
 
   // Initialize WebSocket
   function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/chat/${groupLinkId}/`;
     
+    console.log('[MARA] Connecting to WebSocket:', wsUrl);
     socket = new WebSocket(wsUrl);
 
     socket.onmessage = function(e) {
       const data = JSON.parse(e.data);
+      console.log('[MARA] WS Received:', data.type);
       
       if (data.type === 'chat_message') {
         const m = data.message;
@@ -294,13 +304,12 @@
     };
 
     socket.onclose = function(e) {
-      console.log('Chat socket closed. Reconnecting in 2s...');
+      console.log('[MARA] WebSocket closed. Reconnecting...');
       setTimeout(connectWebSocket, 2000);
     };
 
     socket.onerror = function(err) {
-      console.error('Socket encountered error: ', err.message, 'Closing socket');
-      socket.close();
+      console.error('[MARA] WebSocket error:', err);
     };
   }
 
@@ -330,7 +339,6 @@
   // Typing Status
   function updateTypingIndicator(token, nickname) {
     const indicator = document.getElementById('typing-indicator');
-    const text = document.getElementById('typing-text');
     
     // Add or update typer
     activeTypers.set(token, {
@@ -340,14 +348,14 @@
 
     renderTypingText();
 
-    // Clean up after 3s
+    // Clean up after 4s
     setTimeout(() => {
       const typer = activeTypers.get(token);
-      if (typer && Date.now() - typer.timestamp >= 3000) {
+      if (typer && Date.now() - typer.timestamp >= 4000) {
         activeTypers.delete(token);
         renderTypingText();
       }
-    }, 3000);
+    }, 4000);
   }
 
   function renderTypingText() {
@@ -360,8 +368,8 @@
     } else {
       indicator.classList.remove('hidden');
       if (count === 1) {
-        const nickname = Array.from(activeTypers.values())[0].nickname;
-        text.innerText = `${nickname} est en train d'écrire...`;
+        const name = Array.from(activeTypers.values())[0].nickname;
+        text.innerText = `${name} est en train d'écrire...`;
       } else {
         text.innerText = `${count} personnes sont en train d'écrire...`;
       }
@@ -369,11 +377,16 @@
   }
 
   function notifyTyping() {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        'type': 'typing',
-        'session_token': myToken
-      }));
+    const now = Date.now();
+    // Throttle typing events: only send every 2 seconds
+    if (now - lastTypingSent > 2000) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          'type': 'typing',
+          'session_token': myToken
+        }));
+        lastTypingSent = now;
+      }
     }
   }
 
@@ -432,31 +445,41 @@
   }
 
   function updateReactionUI(reaction) {
+    console.log('[MARA] Updating UI for reaction:', reaction);
     const container = document.getElementById(`reactions-${reaction.message_id}`);
-    if (!container) return;
+    if (!container) {
+      console.warn('[MARA] Container not found for reactions-', reaction.message_id);
+      return;
+    }
 
     // Find existing reaction element for this emoji
     let reactionEl = null;
     Array.from(container.children).forEach(child => {
-      if (child.querySelector('span:first-child').innerText === reaction.emoji) {
+      const emojiSpan = child.querySelector('span:first-child');
+      if (emojiSpan && emojiSpan.innerText === reaction.emoji) {
         reactionEl = child;
       }
     });
 
     if (reaction.count > 0) {
       if (!reactionEl) {
+        console.log('[MARA] Creating new reaction badge');
         reactionEl = document.createElement('div');
-        reactionEl.className = "reaction-badge";
+        reactionEl.className = "reaction-badge animate-bounce-in";
         reactionEl.onclick = (e) => {
           e.stopPropagation();
           sendReaction(reaction.message_id, reaction.emoji);
         };
-        reactionEl.innerHTML = `<span>${reaction.emoji}</span><span class="font-bold">${reaction.count}</span>`;
+        reactionEl.innerHTML = `<span>${reaction.emoji}</span><span class="font-bold ml-1">${reaction.count}</span>`;
         container.appendChild(reactionEl);
       } else {
+        console.log('[MARA] Updating existing reaction badge');
         reactionEl.querySelector('span:last-child').innerText = reaction.count;
+        reactionEl.classList.add('animate-bounce-in');
+        setTimeout(() => reactionEl.classList.remove('animate-bounce-in'), 300);
       }
     } else if (reactionEl) {
+      console.log('[MARA] Removing reaction badge');
       reactionEl.remove();
     }
   }
@@ -638,7 +661,7 @@
              ontouchend="handleTouchEnd()">
           ${parentHtml}
           ${downloadBtn}
-          ${m.text ? `<p class="text-base leading-relaxed whitespace-pre-wrap">${m.text}</p>` : ''}
+          ${m.text ? `<p class="text-[0.95rem] leading-relaxed whitespace-pre-wrap">${m.text}</p>` : ''}
           <div class="flex items-center justify-end gap-2 mt-1">
             <p class="text-[10px] opacity-60">${m.created_at}</p>
             ${deleteBtn}
