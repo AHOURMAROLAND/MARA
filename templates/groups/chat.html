@@ -1,100 +1,29 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ group.name }} — Discussion Anonyme{% endblock %}
+{% block title %}{{ group.name }} — MARA{% endblock %}
+{% block og_title %}{{ group.name }} — Discussion Anonyme sur MARA{% endblock %}
+{% block og_description %}Rejoins ce groupe de discussion anonyme sur MARA !{% endblock %}
+{% block og_image %}{% if group.image %}{{ group.image.url }}{% else %}{{ APP_DEFAULT_IMAGE }}{% endif %}{% endblock %}
+{% block tw_title %}{{ group.name }} — Discussion Anonyme sur MARA{% endblock %}
+{% block tw_image %}{% if group.image %}{{ group.image.url }}{% else %}{{ APP_DEFAULT_IMAGE }}{% endif %}{% endblock %}
 
 {% block extra_head %}
 <style>
-  :root { --vh: 1vh; }
   body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
   
-  .chat-container { 
-    height: calc(var(--vh, 1vh) * 100 - 180px); 
-    overflow-y: auto; 
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
+  .reaction-btn-desktop {
+    opacity: 0;
+    transition: opacity 0.2s;
   }
   
-  .message-bubble { 
-    max-width: 82%; 
-    position: relative; 
-    padding: 12px 16px !important;
-    font-size: 1.05rem !important;
-    line-height: 1.5 !important;
-    border-radius: 20px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
-  }
-  
-  .message-me { 
-    background: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%); 
-    color: white; 
-    border-bottom-right-radius: 4px !important; 
-  }
-  
-  .message-other { 
-    background: white; 
-    color: #1f2937; 
-    border-bottom-left-radius: 4px !important; 
-    border: 1px solid #f3f4f6; 
-  }
-  
-  .nickname-tag { 
-    font-size: 0.75rem; 
-    font-weight: 800; 
-    margin-bottom: 4px; 
-    text-transform: uppercase; 
-    letter-spacing: 0.05em; 
-  }
-
-  /* Input Area Fix for iOS */
-  .input-area {
-    padding-bottom: env(safe-area-inset-bottom, 24px) !important;
-    background: white;
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
-  }
-
-  /* Reactions */
-  .reaction-badge {
-    background: white;
-    border: 1px solid #f3f4f6;
-    border-radius: 9999px;
-    padding: 4px 10px;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 4px;
-  }
-  
-  .reaction-btn-mobile {
-    display: flex !important;
-    width: 36px;
-    height: 36px;
-    background: #f3f4f6;
-    border-radius: 50%;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
+  .group:hover .reaction-btn-desktop {
+    opacity: 1;
   }
 
   @media (min-width: 640px) {
     .max-chat-width { max-width: 600px; margin: 0 auto; }
   }
-
-  /* Animations */
-  @keyframes typing { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-  .animate-typing { animation: typing 1s infinite; }
-  
-  @keyframes bounce-in {
-    0% { transform: scale(0.5); opacity: 0; }
-    70% { transform: scale(1.05); }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  .animate-bounce-in { animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 </style>
 {% endblock %}
 
@@ -180,8 +109,8 @@
               <img src="{{ m.image.url }}" class="rounded-lg mb-2 max-w-full" />
             {% endif %}
             
-            <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
-            <p class="text-[9px] mt-1 opacity-60 text-right">{{ m.created_at|date:"H:i" }}</p>
+            <p class="text-base leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
+            <p class="text-[10px] mt-1 opacity-60 text-right">{{ m.created_at|date:"H:i" }}</p>
 
             <!-- Reactions Row -->
             <div id="reactions-{{ m.id }}" class="flex flex-wrap gap-1 mt-1.5">
@@ -197,7 +126,7 @@
 
           <!-- Mobile Reaction Btn -->
           {% if m.sender_session_token != request.session.ngl_token %}
-          <button class="reaction-btn-mobile hidden items-center justify-center w-8 h-8 bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('{{ m.id }}')">
+          <button class="reaction-btn-mobile sm:hidden flex items-center justify-center bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('{{ m.id }}')">
             😊
           </button>
           {% endif %}
@@ -230,23 +159,42 @@
   <!-- Input Area -->
   <div class="input-area p-4 shrink-0">
     {% if participant.can_write %}
-    <form id="chat-form" class="flex items-end gap-2">
+    <form id="chat-form" class="flex items-end gap-2 sm:gap-3">
       {% csrf_token %}
       <input type="hidden" id="reply-id" value="">
-      <div class="flex-1 relative bg-gray-100 rounded-3xl border-2 border-transparent focus-within:border-pink-300 transition-all p-1">
+      
+      <!-- Image Upload Trigger -->
+      <button type="button" onclick="document.getElementById('image-input').click()" class="w-12 h-12 flex items-center justify-center text-gray-400 hover:text-pink-500 transition-colors shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </button>
+      <input type="file" id="image-input" class="hidden" accept="image/*" onchange="handleImageSelect(this)">
+
+      <div class="flex-1 relative bg-gray-100 rounded-[28px] border-2 border-transparent focus-within:border-pink-300 transition-all p-1 shadow-inner">
+        <!-- Image Preview (inside input area) -->
+        <div id="image-preview-container" class="hidden px-4 pt-2 relative">
+          <img id="image-preview" src="" class="h-20 w-20 object-cover rounded-xl border-2 border-white shadow-sm">
+          <button type="button" onclick="cancelImage()" class="absolute -top-1 left-16 bg-red-500 text-white rounded-full p-1 shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+
         <textarea 
           id="message-input" 
           rows="1" 
           placeholder="Écris un message..."
-          class="w-full bg-transparent border-none outline-none px-4 py-3 text-base resize-none max-h-32"
+          class="w-full bg-transparent border-none outline-none px-5 py-4 text-lg resize-none max-h-40"
         ></textarea>
       </div>
       <button 
         type="submit" 
         id="send-btn"
-        class="w-14 h-14 bg-pink-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-pink-600 active:scale-95 transition disabled:opacity-50 shrink-0"
+        class="w-16 h-16 bg-pink-500 text-white rounded-full flex items-center justify-center shadow-xl hover:bg-pink-600 active:scale-90 transition-all disabled:opacity-50 shrink-0"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
         </svg>
       </button>
@@ -283,6 +231,7 @@
   let socket = null;
   let typingTimeout = null;
   let activeReactionMessageId = null;
+  let activeTypers = new Map();
 
   // Initialize WebSocket
   function connectWebSocket() {
@@ -304,7 +253,7 @@
       } 
       else if (data.type === 'user_typing') {
         if (data.session_token !== myToken) {
-          showTyping(data.nickname);
+          updateTypingIndicator(data.session_token, data.nickname);
         }
       }
       else if (data.type === 'message_reaction') {
@@ -347,16 +296,44 @@
   }
 
   // Typing Status
-  function showTyping(nickname) {
+  function updateTypingIndicator(token, nickname) {
     const indicator = document.getElementById('typing-indicator');
     const text = document.getElementById('typing-text');
-    text.innerText = `${nickname} est en train d'écrire...`;
-    indicator.classList.remove('hidden');
     
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-      indicator.classList.add('hidden');
+    // Add or update typer
+    activeTypers.set(token, {
+      nickname: nickname,
+      timestamp: Date.now()
+    });
+
+    renderTypingText();
+
+    // Clean up after 3s
+    setTimeout(() => {
+      const typer = activeTypers.get(token);
+      if (typer && Date.now() - typer.timestamp >= 3000) {
+        activeTypers.delete(token);
+        renderTypingText();
+      }
     }, 3000);
+  }
+
+  function renderTypingText() {
+    const indicator = document.getElementById('typing-indicator');
+    const text = document.getElementById('typing-text');
+    const count = activeTypers.size;
+
+    if (count === 0) {
+      indicator.classList.add('hidden');
+    } else {
+      indicator.classList.remove('hidden');
+      if (count === 1) {
+        const nickname = Array.from(activeTypers.values())[0].nickname;
+        text.innerText = `${nickname} est en train d'écrire...`;
+      } else {
+        text.innerText = `${count} personnes sont en train d'écrire...`;
+      }
+    }
   }
 
   function notifyTyping() {
@@ -368,7 +345,20 @@
     }
   }
 
-  // Reactions
+  // Reactions & Long Press
+  let longPressTimer;
+  function handleTouchStart(messageId) {
+    longPressTimer = setTimeout(() => {
+      showReactionPicker(messageId);
+      // Trigger haptic feedback if available
+      if (window.navigator.vibrate) window.navigator.vibrate(50);
+    }, 500);
+  }
+
+  function handleTouchEnd() {
+    clearTimeout(longPressTimer);
+  }
+
   function showReactionPicker(messageId) {
     activeReactionMessageId = messageId;
     document.getElementById('reaction-picker').classList.remove('hidden');
@@ -427,6 +417,24 @@
     }
   }
 
+  // Image Handling
+  function handleImageSelect(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('image-preview').src = e.target.result;
+        document.getElementById('image-preview-container').classList.remove('hidden');
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function cancelImage() {
+    document.getElementById('image-input').value = '';
+    document.getElementById('image-preview-container').classList.add('hidden');
+    document.getElementById('image-preview').src = '';
+  }
+
   // Auto-scroll to bottom
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -452,16 +460,20 @@
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = messageInput.value.trim();
+      const imageFile = document.getElementById('image-input').files[0];
       const parentId = document.getElementById('reply-id').value;
-      if (!text) return;
+      
+      if (!text && !imageFile) return;
 
       messageInput.value = '';
       messageInput.style.height = 'auto';
       sendBtn.disabled = true;
       cancelReply();
+      cancelImage();
 
       const formData = new FormData();
-      formData.append('text', text);
+      if (text) formData.append('text', text);
+      if (imageFile) formData.append('image', imageFile);
       if (parentId) formData.append('parent_id', parentId);
       formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
 
@@ -543,7 +555,7 @@
 
     const reactionBtn = !m.is_me ? `
       <button class="reaction-btn-desktop opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block order-2" onclick="showReactionPicker('${m.id}')">😊</button>
-      <button class="reaction-btn-mobile hidden items-center justify-center w-8 h-8 bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('${m.id}')">😊</button>
+      <button class="reaction-btn-mobile sm:hidden flex items-center justify-center bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('${m.id}')">😊</button>
     ` : '';
 
     div.innerHTML = `
@@ -552,12 +564,14 @@
       </div>
       <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
         <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me order-1' : 'message-other order-1'}" 
-             onclick="setReply('${m.id}', '${m.sender_nickname}', '${m.text.substring(0, 30)}')"
-             oncontextmenu="event.preventDefault(); showReactionPicker('${m.id}')">
+             onclick="setReply('${m.id}', '${m.sender_nickname}', '${m.text ? m.text.substring(0, 30) : 'Photo'}')"
+             oncontextmenu="event.preventDefault(); showReactionPicker('${m.id}')"
+             ontouchstart="handleTouchStart('${m.id}')"
+             ontouchend="handleTouchEnd()">
           ${parentHtml}
           ${m.image_url ? `<img src="${m.image_url}" class="rounded-lg mb-2 max-w-full" />` : ''}
-          <p class="text-sm leading-relaxed whitespace-pre-wrap">${m.text}</p>
-          <p class="text-[9px] mt-1 opacity-60 text-right">${m.created_at}</p>
+          ${m.text ? `<p class="text-base leading-relaxed whitespace-pre-wrap">${m.text}</p>` : ''}
+          <p class="text-[10px] mt-1 opacity-60 text-right">${m.created_at}</p>
           <div id="reactions-${m.id}" class="flex flex-wrap gap-1 mt-1.5"></div>
         </div>
         ${reactionBtn}

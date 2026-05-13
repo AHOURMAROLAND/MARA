@@ -1,0 +1,228 @@
+/* MARA Global Style - Unified Colors & UI Components */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --mara-pink: #FF5078;
+  --mara-orange: #FF8C42;
+  --mara-gradient: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%);
+  --vh: 1vh;
+}
+
+* {
+  font-family: 'Nunito', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #f9fafb; /* gray-50 */
+}
+
+/* Common Components */
+.bg-mara {
+  background: var(--mara-gradient);
+}
+
+.text-mara {
+  background: var(--mara-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-mara {
+  background: var(--mara-gradient);
+  color: white;
+  transition: opacity 0.2s;
+}
+
+.btn-mara:hover {
+  opacity: 0.9;
+}
+
+/* Skeleton Loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-avatar { width: 80px; height: 80px; border-radius: 50%; }
+.skeleton-text { height: 16px; margin: 8px 0; }
+.skeleton-title { height: 24px; width: 60%; margin: 12px auto; }
+.skeleton-card { height: 100px; margin: 16px 0; }
+
+/* Page Transition */
+.page-content {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.page-content.loading {
+  opacity: 0.5;
+}
+
+/* Chat & Groups Components (Unified) */
+.chat-container {
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 20px;
+}
+
+.message-bubble {
+  max-width: 85%;
+  position: relative;
+  padding: 14px 18px !important;
+  font-size: 1.15rem !important;
+  line-height: 1.4 !important;
+  border-radius: 22px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+}
+
+.message-me {
+  background: var(--mara-gradient);
+  color: white;
+  border-bottom-right-radius: 6px !important;
+}
+
+.message-other {
+  background: white;
+  color: #1f2937;
+  border-bottom-left-radius: 6px !important;
+  border: 1px solid #f3f4f6;
+}
+
+.nickname-tag {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Input Area Fix for iOS & General */
+.input-area {
+  padding-bottom: calc(env(safe-area-inset-bottom, 24px) + 10px) !important;
+  background: white;
+  box-shadow: 0 -8px 25px rgba(0,0,0,0.05);
+}
+
+/* Reactions UI */
+.reaction-badge {
+  background: white;
+  border: 1px solid #f3f4f6;
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.reaction-btn-mobile {
+  display: flex !important;
+  width: 40px;
+  height: 40px;
+  background: #f3f4f6;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Inbox & Messages */
+.envelope-unread {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--mara-gradient);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.envelope-read {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: #EFEFEF;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.msg-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  background: white;
+  border-bottom: 1px solid #F5F5F5;
+  text-decoration: none;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+
+.msg-row:active { background: #FFF5F7; }
+
+.tab-active {
+  font-weight: 800; color: #1A1A1A;
+  border-bottom: 3px solid var(--mara-pink);
+  padding-bottom: 8px;
+}
+
+.tab-inactive {
+  font-weight: 700; color: #AAAAAA;
+  padding-bottom: 8px;
+}
+
+/* Settings & Forms */
+.install-btn {
+  animation: pulse-install 2s infinite;
+}
+
+@keyframes pulse-install {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.install-btn:hover {
+  animation: none;
+}
+
+.radio-card {
+  transition: all 0.2s;
+}
+
+.radio-card.selected {
+  border-color: var(--mara-pink);
+  background: #FFF5F7;
+}
+
+.radio-card input[type="radio"] {
+  accent-color: var(--mara-pink);
+}
+
+/* Animations */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes typing { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.animate-typing { animation: typing 1s infinite; }
+
+@keyframes bounce-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-bounce-in { animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }

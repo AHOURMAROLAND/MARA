@@ -3,29 +3,6 @@
 {% block title %}Parametres — MARA{% endblock %}
 
 {% block extra_head %}
-<style>
-  * { font-family: 'Nunito', sans-serif !important; }
-  .install-btn {
-    animation: pulse-install 2s infinite;
-  }
-  @keyframes pulse-install {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-  }
-  .install-btn:hover {
-    animation: none;
-  }
-  .radio-card {
-    transition: all 0.2s;
-  }
-  .radio-card.selected {
-    border-color: #FF5078;
-    background: #FFF5F7;
-  }
-  .radio-card input[type="radio"] {
-    accent-color: #FF5078;
-  }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -346,12 +323,26 @@ let deferredPrompt = null;
 const installSection = document.getElementById('install-section');
 const installBtn = document.getElementById('install-btn');
 
+// Detection de l'OS pour les instructions
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isAndroid = /Android/.test(navigator.userAgent);
+
 // Capture the install prompt
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
   installSection.classList.remove('hidden');
+  if (isAndroid) {
+    document.getElementById('android-instructions').classList.remove('hidden');
+  }
 });
+
+// Forcer l'affichage sur iOS car beforeinstallprompt n'existe pas
+if (isIOS && !window.matchMedia('(display-mode: standalone)').matches) {
+  installSection.classList.remove('hidden');
+  installBtn.classList.add('hidden'); // On cache le bouton car il ne marche pas sur iOS
+  document.getElementById('ios-instructions').classList.remove('hidden');
+}
 
 // Handle install button click
 installBtn.addEventListener('click', async () => {

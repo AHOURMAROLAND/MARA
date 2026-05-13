@@ -3,41 +3,6 @@
 {% block title %}Mes messages — MARA{% endblock %}
 
 {% block extra_head %}
-<style>
-  * { font-family: 'Nunito', sans-serif !important; }
-
-  .envelope-unread {
-    width: 48px; height: 48px; border-radius: 50%;
-    background: linear-gradient(135deg, #FF5078, #FF8C42);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .envelope-read {
-    width: 48px; height: 48px; border-radius: 50%;
-    background: #EFEFEF;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .msg-row {
-    display: flex; align-items: center; gap: 14px;
-    padding: 14px 16px;
-    background: white;
-    border-bottom: 1px solid #F5F5F5;
-    text-decoration: none;
-    transition: background 0.15s;
-    cursor: pointer;
-  }
-  .msg-row:active { background: #FFF5F7; }
-  .tab-active {
-    font-weight: 800; color: #1A1A1A;
-    border-bottom: 3px solid #FF5078;
-    padding-bottom: 8px;
-  }
-  .tab-inactive {
-    font-weight: 700; color: #AAAAAA;
-    padding-bottom: 8px;
-  }
-</style>
 {% endblock %}
 
 {% block content %}

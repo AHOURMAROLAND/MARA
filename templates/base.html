@@ -3,7 +3,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 
   <!-- Primary Meta Tags -->
   <title>{% block title %}MARA — Message At Random Anonymous{% endblock %}</title>
@@ -12,7 +12,6 @@
   <meta name="keywords" content="messages anonymes, NGL, MARA, messages secrets, confidentialité, anonyme"/>
   <meta name="author" content="MARA"/>
   <meta name="robots" content="index, follow"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FF2D55">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -73,38 +72,8 @@
     }
   </script>
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-    * { font-family: 'Nunito', sans-serif; }
-    .bg-mara { background: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%); }
-    .text-mara { background: linear-gradient(135deg, #FF5078, #FF8C42); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .btn-mara { background: linear-gradient(135deg, #FF5078, #FF8C42); }
-    
-    /* Skeleton Loading */
-    .skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 8px;
-    }
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-    .skeleton-avatar { width: 80px; height: 80px; border-radius: 50%; }
-    .skeleton-text { height: 16px; margin: 8px 0; }
-    .skeleton-title { height: 24px; width: 60%; margin: 12px auto; }
-    .skeleton-card { height: 100px; margin: 16px 0; }
-    
-    /* Page Transition */
-    .page-content {
-      opacity: 1;
-      transition: opacity 0.2s ease;
-    }
-    .page-content.loading {
-      opacity: 0.5;
-    }
-  </style>
+  <!-- Custom Global Style -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
   {% block extra_head %}{% endblock %}
 </head>
