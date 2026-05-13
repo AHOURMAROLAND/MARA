@@ -451,7 +451,10 @@ class MaraChat {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': this.csrfToken
                     },
-                    body: JSON.stringify({ emoji: emoji })
+                    body: JSON.stringify({ 
+                        emoji: emoji,
+                        session_token: this.myToken 
+                    })
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -544,8 +547,12 @@ class MaraChat {
                     const response = await fetch(`/groups/api/g/${this.groupLinkId}/delete/${messageId}/`, {
                         method: 'POST',
                         headers: {
+                            'Content-Type': 'application/json',
                             'X-CSRFToken': this.csrfToken
-                        }
+                        },
+                        body: JSON.stringify({
+                            session_token: this.myToken
+                        })
                     });
                     const data = await response.json();
                     if (data.success) {

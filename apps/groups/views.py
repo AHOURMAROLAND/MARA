@@ -308,13 +308,24 @@ def delete_group_message_http(request, link_id, message_id):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
     group = get_object_or_404(Group, link_id=link_id, is_active=True)
-    session_token = request.session.get('ngl_token')
+    
+    # Try to get session token from POST body first (more robust for fallback), then session
+    session_token = None
+    try:
+        data = json.loads(request.body) if request.body else {}
+        session_token = data.get('session_token')
+    except:
+        pass
+        
+    if not session_token:
+        session_token = request.session.get('ngl_token')
     
     try:
         msg = GroupMessage.objects.get(id=message_id, group=group)
         
         # Permission check
         if msg.sender_session_token != session_token:
+            print(f"[MARA-HTTP] Deletion 403: Token mismatch. msg_token={msg.sender_session_token}, user_token={session_token}")
             return JsonResponse({'error': 'Unauthorized'}, status=403)
             
         # Time limit check (5 minutes)

@@ -81,6 +81,14 @@
   <!-- Custom Global Style -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1.5">
 
+  <script>
+    // Global theme initialization to prevent flash
+    (function() {
+      const savedTheme = localStorage.getItem('mara-theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
+
   {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen">

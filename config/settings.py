@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'channels',
+    'channels_postgres',
     'apps.users.apps.UsersConfig',
     'apps.inbox.apps.InboxConfig',
     'apps.groups.apps.GroupsConfig',

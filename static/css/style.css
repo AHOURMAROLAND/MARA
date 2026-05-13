@@ -28,19 +28,29 @@
   --safe-bottom: env(safe-area-inset-bottom, 20px);
 }
 
-/* Dark Theme overrides */
+/* Dark Theme overrides - Softer dark mode */
 [data-theme="dark"] {
-  --bg-color: #000000;
-  --text-color: #f3f4f6;
-  --text-muted: #9ca3af;
-  --bubble-other-bg: #1a1a1a;
-  --bubble-other-text: #f3f4f6;
-  --bubble-other-border: #262626;
-  --input-bg: #141414;
-  --header-bg: #000000;
-  --card-bg: #111111;
-  --border-color: #262626;
-  --shadow: 0 4px 12px rgba(0,0,0,0.3);
+  --bg-color: #0f172a; /* Deep blue-gray instead of pure black */
+  --text-color: #f8fafc;
+  --text-muted: #94a3b8;
+  --bubble-other-bg: #1e293b;
+  --bubble-other-text: #f8fafc;
+  --bubble-other-border: #334155;
+  --input-bg: #1e293b;
+  --header-bg: #0f172a;
+  --card-bg: #1e293b;
+  --border-color: #334155;
+  --shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* Orange accents for dark mode */
+[data-theme="dark"] .message-other {
+  border-left: 3px solid var(--mara-orange);
+}
+
+[data-theme="dark"] .nickname-tag {
+  color: var(--mara-orange);
+  opacity: 0.8;
 }
 
 /* Global Reset */

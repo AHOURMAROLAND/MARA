@@ -121,6 +121,51 @@
       <div id="push-success-msg" class="hidden mt-3 p-3 bg-green-50 text-green-600 text-sm rounded-lg"></div>
     </div>
 
+    <!-- Theme Selection -->
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+      <h3 class="font-bold text-gray-800 mb-2">Thème de l'application</h3>
+      <p class="text-xs text-gray-400 mb-4">Choisis l'apparence de MARA :</p>
+      
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="setGlobalTheme('light')" class="theme-card p-4 border-2 border-gray-100 rounded-xl flex flex-col items-center gap-2 hover:border-pink-200 transition">
+          <div class="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center text-yellow-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          </div>
+          <span class="font-bold text-sm text-gray-700">Clair</span>
+        </button>
+        
+        <button onclick="setGlobalTheme('dark')" class="theme-card p-4 border-2 border-gray-100 rounded-xl flex flex-col items-center gap-2 hover:border-pink-200 transition">
+          <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </div>
+          <span class="font-bold text-sm text-gray-700">Sombre</span>
+        </button>
+      </div>
+    </div>
+
+    <script>
+      function setGlobalTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('mara-theme', theme);
+        // Add a visual feedback
+        const cards = document.querySelectorAll('.theme-card');
+        cards.forEach(c => c.classList.remove('border-pink-500', 'bg-pink-50'));
+        event.currentTarget.classList.add('border-pink-500', 'bg-pink-50');
+      }
+      
+      // Initialize selection on load
+      document.addEventListener('DOMContentLoaded', () => {
+        const current = localStorage.getItem('mara-theme') || 'light';
+        const buttons = document.querySelectorAll('.theme-card');
+        if (current === 'light') buttons[0].classList.add('border-pink-500', 'bg-pink-50');
+        else buttons[1].classList.add('border-pink-500', 'bg-pink-50');
+      });
+    </script>
+
     <form method="POST" enctype="multipart/form-data" class="space-y-4">
       {% csrf_token %}
 

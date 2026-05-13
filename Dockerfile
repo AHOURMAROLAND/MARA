@@ -25,4 +25,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # Collect static files at runtime along with migrations
-CMD sh -c "python manage.py collectstatic --noinput && python manage.py migrate && python manage.py create_superuser && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+CMD sh -c "python manage.py collectstatic --noinput && python manage.py migrate && python manage.py create_superuser && daphne -b 0.0.0.0 -p 8000 config.asgi:application"
