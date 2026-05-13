@@ -87,12 +87,37 @@
         </div>
         
         <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
-          <!-- Desktop Reaction Btn -->
-          {% if m.sender_session_token != request.session.ngl_token %}
-          <button class="reaction-btn-desktop opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block order-2" onclick="showReactionPicker('{{ m.id }}')">
-            😊
-          </button>
-          {% endif %}
+          <!-- Options Menu (Three Dots) -->
+          <div class="relative order-2">
+            <button onclick="toggleOptionsMenu('{{ m.id }}')" class="message-options-btn p-1.5 text-gray-400 hover:text-gray-600 transition-all rounded-full hover:bg-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </button>
+            
+            <div id="options-{{ m.id }}" class="options-dropdown">
+              <button onclick="setReply('{{ m.id }}', '{{ m.sender_nickname }}', '{{ m.text|truncatechars:30|escapejs }}')" class="option-item">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+                Répondre
+              </button>
+              <button onclick="showReactionPicker('{{ m.id }}')" class="option-item">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Réagir
+              </button>
+              {% if m.sender_session_token == request.session.ngl_token %}
+              <button onclick="deleteMessage('{{ m.id }}')" class="option-item delete delete-trigger" data-created="{{ m.created_at.isoformat }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Supprimer
+              </button>
+              {% endif %}
+            </div>
+          </div>
 
           <div class="message-bubble p-3 rounded-2xl shadow-sm {% if m.sender_session_token == request.session.ngl_token %}message-me order-1{% else %}message-other order-1{% endif %}" 
                onclick="setReply('{{ m.id }}', '{{ m.sender_nickname }}', '{{ m.text|truncatechars:30|escapejs }}')"
@@ -122,18 +147,6 @@
             
             <div class="flex items-center justify-end gap-2 mt-1">
               <p class="text-[10px] opacity-60">{{ m.created_at|date:"H:i" }}</p>
-              {% if m.sender_session_token == request.session.ngl_token %}
-                <button 
-                  onclick="deleteMessage('{{ m.id }}')" 
-                  id="del-{{ m.id }}"
-                  class="delete-trigger text-red-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  data-created="{{ m.created_at.isoformat }}"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              {% endif %}
             </div>
 
             <!-- Reactions Row -->
@@ -142,18 +155,11 @@
               {% for g in reaction_groups %}
                 <div class="reaction-badge" onclick="event.stopPropagation(); sendReaction('{{ m.id }}', '{{ g.grouper }}')">
                   <span>{{ g.grouper }}</span>
-                  <span class="font-bold">{{ g.list|length }}</span>
+                  <span class="font-bold ml-1">{{ g.list|length }}</span>
                 </div>
               {% endfor %}
             </div>
           </div>
-
-          <!-- Mobile Reaction Btn -->
-          {% if m.sender_session_token != request.session.ngl_token %}
-          <button class="reaction-btn-mobile sm:hidden flex items-center justify-center bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('{{ m.id }}')">
-            😊
-          </button>
-          {% endif %}
         </div>
       </div>
     {% endfor %}
@@ -407,12 +413,32 @@
   function showReactionPicker(messageId) {
     activeReactionMessageId = messageId;
     document.getElementById('reaction-picker').classList.remove('hidden');
+    // Hide options menu if open
+    const options = document.getElementById(`options-${messageId}`);
+    if (options) options.classList.remove('active');
   }
 
   function hideReactionPicker() {
     document.getElementById('reaction-picker').classList.add('hidden');
     activeReactionMessageId = null;
   }
+
+  function toggleOptionsMenu(messageId) {
+    // Close all other menus
+    document.querySelectorAll('.options-dropdown').forEach(d => {
+      if (d.id !== `options-${messageId}`) d.classList.remove('active');
+    });
+    
+    const menu = document.getElementById(`options-${messageId}`);
+    if (menu) menu.classList.toggle('active');
+  }
+
+  // Close menus when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.message-options-btn') && !e.target.closest('.options-dropdown')) {
+      document.querySelectorAll('.options-dropdown').forEach(d => d.classList.remove('active'));
+    }
+  });
 
   function sendReactionFromPicker(emoji) {
     if (activeReactionMessageId) {
@@ -620,10 +646,39 @@
       `;
     }
 
-    const reactionBtn = !m.is_me ? `
-      <button class="reaction-btn-desktop opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block order-2" onclick="showReactionPicker('${m.id}')">😊</button>
-      <button class="reaction-btn-mobile sm:hidden flex items-center justify-center bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('${m.id}')">😊</button>
+    const deleteBtn = m.is_me ? `
+      <button onclick="deleteMessage('${m.id}')" class="option-item delete delete-trigger" data-created="${new Date().toISOString()}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        Supprimer
+      </button>
     ` : '';
+
+    const optionsMenu = `
+      <div class="relative order-2">
+        <button onclick="toggleOptionsMenu('${m.id}')" class="message-options-btn p-1.5 text-gray-400 hover:text-gray-600 transition-all rounded-full hover:bg-gray-100">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+          </svg>
+        </button>
+        <div id="options-${m.id}" class="options-dropdown">
+          <button onclick="setReply('${m.id}', '${m.sender_nickname}', '${m.text ? m.text.substring(0, 30).replace(/'/g, "\\'") : 'Photo'}')" class="option-item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+            Répondre
+          </button>
+          <button onclick="showReactionPicker('${m.id}')" class="option-item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Réagir
+          </button>
+          ${deleteBtn}
+        </div>
+      </div>
+    `;
 
     const downloadBtn = m.image_url ? `
       <div class="relative group/img mb-2">
@@ -636,26 +691,14 @@
       </div>
     ` : '';
 
-    const deleteBtn = m.is_me ? `
-      <button 
-        onclick="deleteMessage('${m.id}')" 
-        id="del-${m.id}"
-        class="delete-trigger text-red-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-        data-created="${new Date().toISOString()}"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
-    ` : '';
-
     div.innerHTML = `
       <div class="nickname-tag ${m.is_me ? 'text-pink-500' : 'text-gray-400'}">
         ${m.sender_nickname}
       </div>
       <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
+        ${optionsMenu}
         <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me order-1' : 'message-other order-1'}" 
-             onclick="setReply('${m.id}', '${m.sender_nickname}', '${m.text ? m.text.substring(0, 30) : 'Photo'}')"
+             onclick="setReply('${m.id}', '${m.sender_nickname}', '${m.text ? m.text.substring(0, 30).replace(/'/g, "\\'") : 'Photo'}')"
              oncontextmenu="event.preventDefault(); showReactionPicker('${m.id}')"
              ontouchstart="handleTouchStart('${m.id}')"
              ontouchend="handleTouchEnd()">
@@ -664,11 +707,9 @@
           ${m.text ? `<p class="text-[0.95rem] leading-relaxed whitespace-pre-wrap">${m.text}</p>` : ''}
           <div class="flex items-center justify-end gap-2 mt-1">
             <p class="text-[10px] opacity-60">${m.created_at}</p>
-            ${deleteBtn}
           </div>
           <div id="reactions-${m.id}" class="flex flex-wrap gap-1 mt-1.5"></div>
         </div>
-        ${reactionBtn}
       </div>
     `;
     chatMessages.appendChild(div);
