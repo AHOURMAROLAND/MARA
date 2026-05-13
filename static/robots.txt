@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /m/inbox/
+Disallow: /m/download/
+
+Sitemap: https://mara.app/sitemap.xml

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Message envoye — MARA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
+  <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+
+    <!-- Icone succes -->
+    <div class="w-16 h-16 rounded-full bg-mara flex items-center justify-center text-white text-3xl mx-auto mb-4">
+      ✉️
+    </div>
+
+    <h2 class="text-xl font-extrabold text-gray-800 mb-2">Message envoye !</h2>
+    <p class="text-gray-400 text-sm mb-6">
+      Ton message anonyme a bien ete envoye a
+      <span class="font-semibold text-gray-700">@{{ recipient.pseudo }}</span>.
+      Il ne saura jamais qui tu es
+    </p>
+
+    <!-- Renvoyer -->
+    <a href="{% url 'send_message' recipient.link_id %}"
+       class="block w-full btn-mara text-white font-bold py-3 rounded-xl text-sm mb-3 hover:opacity-90 transition">
+      Envoyer un autre message
+    </a>
+
+    <!-- Creer son profil -->
+    <a href="{% url 'home' %}"
+       class="block w-full bg-black text-white font-bold py-3 rounded-xl text-sm hover:bg-gray-900 transition">
+      Cree ton propre profil MARA
+    </a>
+  </div>
+
+  <p class="text-gray-300 text-xs mt-6">
+    <a href="{% url 'terms' %}">Terms</a> · <a href="{% url 'privacy' %}">Privacy</a>
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Politique de Confidentialité — MARA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+  <div class="bg-mara px-4 pt-10 pb-6 text-white text-center">
+    <h1 class="text-2xl font-extrabold mb-2">Politique de Confidentialité</h1>
+    <p class="text-pink-100 text-sm max-w-md mx-auto">La protection de tes données, expliquée simplement.</p>
+  </div>
+
+  <div class="max-w-xl mx-auto px-4 mt-8 space-y-6">
+    <div class="bg-white rounded-2xl shadow-sm p-6 text-gray-700">
+      
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 text-mara">1. L'Anonymat avant tout</h2>
+      </div>
+      <p class="mb-6">L'identité des expéditeurs n'est <strong>jamais</strong> révélée aux destinataires des messages. Aucun compte n'est requis pour envoyer un message. Cependant, pour des raisons de sécurité, nous conservons certaines empreintes techniques (comme les adresses IP) en cas de signalement de comportements dangereux.</p>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 text-mara">2. Les Données Collectées</h2>
+      </div>
+      <p class="mb-2">Nous ne collectons que ce qui est strictement nécessaire pour faire fonctionner MARA :</p>
+      <ul class="list-disc pl-5 mb-6 space-y-2">
+        <li><strong>Propriétaires de compte :</strong> Ton pseudo, ton Code PIN (entièrement chiffré et sécurisé en base de données), ta photo de profil et tes préférences.</li>
+        <li><strong>Contenus :</strong> Les messages texte envoyés et les images (hébergées de manière sécurisée).</li>
+      </ul>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 text-mara">3. Cookies et Stockage Local</h2>
+      </div>
+      <p class="mb-6">Nous utilisons le stockage local de ton navigateur et des cookies essentiels <strong>uniquement pour des raisons fonctionnelles</strong> (pour te maintenir connecté(e), pour sauvegarder tes paramètres et pour t'envoyer des notifications Web Push). Nous n'utilisons aucun tracker publicitaire intrusif.</p>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 text-mara">4. Partage et Revente de Données</h2>
+      </div>
+      <p class="mb-6 font-semibold">MARA s'engage formellement à ne JAMAIS revendre tes informations personnelles ou le contenu de tes messages à des entreprises tierces.</p>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 text-mara">5. Obligations Légales</h2>
+      </div>
+      <p class="mb-2">Nous garantissons l'anonymat pour un usage ludique. Cependant, l'anonymat ne s'applique pas face à la loi. MARA se réserve le droit de collaborer et de transmettre les données d'identification (adresses IP, logs) aux autorités compétentes en cas de :</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>Enquêtes judiciaires.</li>
+        <li>Signalement avéré de cyberharcèlement.</li>
+        <li>Menaces d'actes violents ou de terrorisme.</li>
+      </ul>
+    </div>
+
+    <div class="text-center mt-6">
+      <a href="javascript:history.back()" class="text-pink-500 font-bold hover:underline">Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

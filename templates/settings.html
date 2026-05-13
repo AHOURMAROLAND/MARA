@@ -1,0 +1,694 @@
+{% extends 'base.html' %}
+
+{% block title %}Parametres — MARA{% endblock %}
+
+{% block extra_head %}
+<style>
+  * { font-family: 'Nunito', sans-serif !important; }
+  .install-btn {
+    animation: pulse-install 2s infinite;
+  }
+  @keyframes pulse-install {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+  }
+  .install-btn:hover {
+    animation: none;
+  }
+  .radio-card {
+    transition: all 0.2s;
+  }
+  .radio-card.selected {
+    border-color: #FF5078;
+    background: #FFF5F7;
+  }
+  .radio-card input[type="radio"] {
+    accent-color: #FF5078;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+
+  <!-- Header -->
+  <div class="bg-mara px-4 pt-10 pb-6 text-white">
+    <div class="max-w-md mx-auto flex items-center gap-3">
+      <a href="{% url 'inbox' user.link_id %}" class="text-pink-100 text-sm">Retour</a>
+      <h1 class="text-xl font-extrabold">Parametres</h1>
+    </div>
+  </div>
+
+  <div class="max-w-md mx-auto px-4 mt-6 space-y-4">
+
+    {% if messages %}
+      <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-11/12 max-w-sm pointer-events-none">
+        {% for msg in messages %}
+          <div class="toast-message bg-gray-800 text-white text-sm rounded-xl px-5 py-4 shadow-2xl flex items-center justify-between pointer-events-auto transform transition-all duration-500 translate-y-[-100%] opacity-0">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <p class="font-semibold">{{ msg }}</p>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const toasts = document.querySelectorAll('.toast-message');
+          toasts.forEach((toast, index) => {
+            setTimeout(() => {
+              toast.classList.remove('translate-y-[-100%]', 'opacity-0');
+              toast.classList.add('translate-y-0', 'opacity-100');
+            }, 100 * index);
+            
+            setTimeout(() => {
+              toast.classList.remove('translate-y-0', 'opacity-100');
+              toast.classList.add('translate-y-[-100%]', 'opacity-0');
+              setTimeout(() => toast.remove(), 500);
+            }, 4000 + (100 * index));
+          });
+        });
+      </script>
+    {% endif %}
+
+    <!-- PWA Installation -->
+    <div id="install-section" class="hidden bg-gradient-to-r from-pink-500 to-orange-400 rounded-2xl p-5 text-white">
+      <div class="flex items-center gap-2 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        <h3 class="font-extrabold">Installer l'app</h3>
+      </div>
+      <p class="text-sm text-pink-100 mb-3 leading-relaxed">
+        Ajoute MARA sur ton ecran d'accueil pour un acces rapide !
+      </p>
+      <button id="install-btn" class="install-btn w-full bg-white text-pink-500 font-extrabold py-3 rounded-xl text-sm shadow-lg flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Ajouter a l'ecran d'accueil
+      </button>
+      <!-- Instructions manuelles pour iOS/Safari -->
+      <div id="ios-instructions" class="hidden mt-3 text-xs text-pink-100 bg-white/10 rounded-lg p-3">
+        <p class="font-bold mb-1">Sur iPhone/iPad :</p>
+        <ol class="list-decimal list-inside space-y-1">
+          <li>Appuie sur le bouton Partager (icone carre avec fleche)</li>
+          <li>Scroll et selectionne "Sur l'ecran d'accueil"</li>
+          <li>Confirme en appuyant sur "Ajouter"</li>
+        </ol>
+      </div>
+      <div id="android-instructions" class="hidden mt-3 text-xs text-pink-100 bg-white/10 rounded-lg p-3">
+        <p class="font-bold mb-1">Sur Android :</p>
+        <ol class="list-decimal list-inside space-y-1">
+          <li>Appuie sur les 3 points en haut a droite</li>
+          <li>Selectionne "Ajouter a l'ecran d'accueil"</li>
+          <li>Confirme en appuyant sur "Ajouter"</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Push Notifications -->
+    <div id="push-section" class="bg-white rounded-2xl shadow-sm p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div id="push-icon-bg" class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+            <svg id="push-icon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-gray-800">Notifications push</h3>
+            <p id="push-status-text" class="text-xs text-gray-400">Verifications...</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="enable-push-btn" class="hidden bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold px-4 py-2 rounded-lg text-sm shadow">
+            Activer
+          </button>
+          <button id="disable-push-btn" class="hidden bg-gray-100 text-gray-600 font-bold px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition">
+            Desactiver
+          </button>
+          <span id="push-status-blocked" class="hidden text-red-500 text-sm font-bold flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+            </svg>
+            Bloque
+          </span>
+          <span id="push-status-not-supported" class="hidden text-gray-400 text-xs">
+            Non supporte
+          </span>
+        </div>
+      </div>
+      <!-- Error message container -->
+      <div id="push-error-msg" class="hidden mt-3 p-3 bg-red-50 text-red-600 text-sm rounded-lg"></div>
+      <!-- Success message container -->
+      <div id="push-success-msg" class="hidden mt-3 p-3 bg-green-50 text-green-600 text-sm rounded-lg"></div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+
+      <!-- Content Mode - Single Choice -->
+      <div class="bg-white rounded-2xl shadow-sm p-5">
+        <h3 class="font-bold text-gray-800 mb-2">Type de contenu autorise</h3>
+        <p class="text-xs text-gray-400 mb-4">Choisis UNE SEULE option :</p>
+
+        <div class="space-y-3">
+          <!-- Option Messages Texte -->
+          <label class="radio-card {% if user.content_mode == 'text' %}selected{% endif %} block border-2 border-gray-200 rounded-xl p-4 cursor-pointer hover:border-pink-300">
+            <div class="flex items-center gap-3">
+              <input type="radio" name="content_mode" value="text"
+                {% if user.content_mode == 'text' %}checked{% endif %}
+                class="w-5 h-5 accent-pink-500 flex-shrink-0"/>
+              <div class="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="font-bold text-gray-800 text-sm">Messages texte uniquement</p>
+                <p class="text-xs text-gray-400">Je ne veux recevoir que des messages ecrits</p>
+              </div>
+            </div>
+          </label>
+
+          <!-- Option Images -->
+          <label class="radio-card {% if user.content_mode == 'images' %}selected{% endif %} block border-2 border-gray-200 rounded-xl p-4 cursor-pointer hover:border-pink-300">
+            <div class="flex items-center gap-3">
+              <input type="radio" name="content_mode" value="images"
+                {% if user.content_mode == 'images' %}checked{% endif %}
+                class="w-5 h-5 accent-pink-500 flex-shrink-0"/>
+              <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="font-bold text-gray-800 text-sm">Images uniquement</p>
+                <p class="text-xs text-gray-400">Je ne veux recevoir que des photos</p>
+              </div>
+            </div>
+          </label>
+
+          <!-- Option Les Deux -->
+          <label class="radio-card {% if user.content_mode == 'both' %}selected{% endif %} block border-2 border-gray-200 rounded-xl p-4 cursor-pointer hover:border-pink-300">
+            <div class="flex items-center gap-3">
+              <input type="radio" name="content_mode" value="both"
+                {% if user.content_mode == 'both' or not user.content_mode %}checked{% endif %}
+                class="w-5 h-5 accent-pink-500 flex-shrink-0"/>
+              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="font-bold text-gray-800 text-sm">Les deux</p>
+                <p class="text-xs text-gray-400">J'accepte les messages ET les images</p>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Photo de profil -->
+      <div class="bg-white rounded-2xl shadow-sm p-5">
+        <h3 class="font-bold text-gray-800 mb-4">Photo de profil</h3>
+
+        <div class="flex flex-col items-center">
+          <!-- Preview -->
+          <div class="relative mb-4">
+            {% if user.photo %}
+              <img id="photo-preview" src="{{ user.photo.url }}" class="w-24 h-24 rounded-full object-cover border-4 border-pink-100"/>
+            {% else %}
+              <div id="photo-preview" class="w-24 h-24 rounded-full bg-mara flex items-center justify-center text-white text-2xl font-bold border-4 border-pink-100">
+                {{ user.pseudo|first|upper }}
+              </div>
+            {% endif %}
+
+            <!-- Edit overlay -->
+            <label for="photo-input" class="absolute bottom-0 right-0 w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-pink-600 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+              </svg>
+            </label>
+          </div>
+
+          <!-- Hidden file input -->
+          <input type="file" id="photo-input" name="photo" accept="image/*" class="hidden" onchange="previewPhoto(this)"/>
+
+          <!-- Actions -->
+          <div class="flex gap-2">
+            <label for="photo-input" class="px-4 py-2 bg-pink-50 text-pink-600 rounded-lg text-sm font-bold cursor-pointer hover:bg-pink-100 transition">
+              {% if user.photo %}Changer{% else %}Ajouter{% endif %}
+            </label>
+            {% if user.photo %}
+              <button type="button" onclick="confirmDeletePhoto()" class="px-4 py-2 bg-red-50 text-red-500 rounded-lg text-sm font-bold hover:bg-red-100 transition">
+                Supprimer
+              </button>
+              <input type="hidden" name="delete_photo" id="delete-photo-flag" value="false"/>
+            {% endif %}
+          </div>
+
+          <p class="text-xs text-gray-400 mt-2">JPG, PNG - Max 5MB</p>
+        </div>
+      </div>
+
+      <!-- Mon profil -->
+      <div class="bg-white rounded-2xl shadow-sm p-5">
+        <h3 class="font-bold text-gray-800 mb-3">Mon profil</h3>
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-10 h-10 rounded-full bg-mara flex items-center justify-center text-white font-bold">
+            {{ user.pseudo|first|upper }}
+          </div>
+          <div>
+            <p class="font-semibold text-gray-800">@{{ user.pseudo }}</p>
+            <p class="text-xs text-gray-400">mara.app/u/{{ user.link_id }}</p>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-100 space-y-3">
+          <h4 class="font-bold text-gray-800 text-sm">Modifier le Code PIN</h4>
+          
+          {% if user.pin_code %}
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Ancien Code PIN</label>
+            <input
+              type="password"
+              pattern="[0-9]{4}"
+              inputmode="numeric"
+              maxlength="4"
+              name="old_pin"
+              placeholder="Ex: 1234"
+              class="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-pink-400 font-bold tracking-widest"
+            />
+          </div>
+          {% endif %}
+          
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-700 mb-1">Nouveau</label>
+              <input
+                type="password"
+                pattern="[0-9]{4}"
+                inputmode="numeric"
+                maxlength="4"
+                name="new_pin"
+                placeholder="Ex: 5678"
+                class="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-pink-400 font-bold tracking-widest"
+              />
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-700 mb-1">Confirmer</label>
+              <input
+                type="password"
+                pattern="[0-9]{4}"
+                inputmode="numeric"
+                maxlength="4"
+                name="confirm_pin"
+                placeholder="Ex: 5678"
+                class="w-full px-4 py-2 border border-gray-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-pink-400 font-bold tracking-widest"
+              />
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Laisse vide si tu ne souhaites pas modifier ton code PIN actuel.</p>
+        </div>
+      </div>
+
+      <button type="submit"
+        class="w-full btn-mara text-white font-bold py-3 rounded-xl text-sm shadow hover:opacity-90 transition">
+        Sauvegarder les parametres
+      </button>
+    </form>
+
+    <!-- Liens utiles et Deconnexion -->
+    <div class="flex flex-col items-center gap-3 mt-6">
+      <div class="flex items-center gap-4 text-xs text-gray-400">
+        <a href="{% url 'terms' %}" class="hover:text-pink-500 transition">Conditions d'utilisation</a>
+        <span>•</span>
+        <a href="{% url 'privacy' %}" class="hover:text-pink-500 transition">Confidentialité</a>
+      </div>
+      <a href="{% url 'logout' %}" class="text-sm text-gray-400 hover:text-red-400 font-medium">
+        Se déconnecter
+      </a>
+    </div>
+</div>
+
+<script>
+// ==================== PWA INSTALLATION ====================
+let deferredPrompt = null;
+const installSection = document.getElementById('install-section');
+const installBtn = document.getElementById('install-btn');
+
+// Capture the install prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installSection.classList.remove('hidden');
+});
+
+// Handle install button click
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    installSection.classList.add('hidden');
+  }
+  deferredPrompt = null;
+});
+
+// Hide if already installed
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  installSection.classList.add('hidden');
+}
+
+window.addEventListener('appinstalled', () => {
+  installSection.classList.add('hidden');
+  deferredPrompt = null;
+});
+
+// ==================== PUSH NOTIFICATIONS ====================
+const enablePushBtn = document.getElementById('enable-push-btn');
+const disablePushBtn = document.getElementById('disable-push-btn');
+const pushStatusText = document.getElementById('push-status-text');
+const pushStatusBlocked = document.getElementById('push-status-blocked');
+const pushStatusNotSupported = document.getElementById('push-status-not-supported');
+const pushIconBg = document.getElementById('push-icon-bg');
+const pushIcon = document.getElementById('push-icon');
+const pushErrorMsg = document.getElementById('push-error-msg');
+const pushSuccessMsg = document.getElementById('push-success-msg');
+const VAPID_PUBLIC_KEY = '{{ VAPID_PUBLIC_KEY|default:"" }}';
+
+let currentSubscription = null;
+
+// Show error message
+function showPushError(msg) {
+  pushErrorMsg.textContent = msg;
+  pushErrorMsg.classList.remove('hidden');
+  pushSuccessMsg.classList.add('hidden');
+  setTimeout(() => pushErrorMsg.classList.add('hidden'), 5000);
+}
+
+// Show success message
+function showPushSuccess(msg) {
+  pushSuccessMsg.textContent = msg;
+  pushSuccessMsg.classList.remove('hidden');
+  pushErrorMsg.classList.add('hidden');
+  setTimeout(() => pushSuccessMsg.classList.add('hidden'), 5000);
+}
+
+// Update UI based on status
+function updatePushUI(status, message = '') {
+  // Reset all states
+  enablePushBtn.classList.add('hidden');
+  disablePushBtn.classList.add('hidden');
+  pushStatusBlocked.classList.add('hidden');
+  pushStatusNotSupported.classList.add('hidden');
+  pushIconBg.className = 'w-10 h-10 rounded-lg flex items-center justify-center';
+
+  switch(status) {
+    case 'enabled':
+      pushStatusText.textContent = 'Notifications activees';
+      pushStatusText.className = 'text-xs text-green-500 font-medium';
+      pushIconBg.classList.add('bg-green-100');
+      pushIcon.classList.replace('text-gray-400', 'text-green-500');
+      disablePushBtn.classList.remove('hidden');
+      break;
+    case 'disabled':
+      pushStatusText.textContent = 'Notifications desactivees';
+      pushStatusText.className = 'text-xs text-gray-400';
+      pushIconBg.classList.add('bg-gray-100');
+      pushIcon.classList.replace('text-green-500', 'text-gray-400');
+      pushIcon.classList.replace('text-red-500', 'text-gray-400');
+      enablePushBtn.classList.remove('hidden');
+      break;
+    case 'blocked':
+      pushStatusText.textContent = 'Autorisation refusee';
+      pushStatusText.className = 'text-xs text-red-500';
+      pushIconBg.classList.add('bg-red-100');
+      pushIcon.classList.replace('text-gray-400', 'text-red-500');
+      pushIcon.classList.replace('text-green-500', 'text-red-500');
+      pushStatusBlocked.classList.remove('hidden');
+      break;
+    case 'not_supported':
+      pushStatusText.textContent = 'Non supporte par ce navigateur';
+      pushStatusText.className = 'text-xs text-gray-400';
+      pushIconBg.classList.add('bg-gray-100');
+      pushIcon.classList.replace('text-green-500', 'text-gray-400');
+      pushIcon.classList.replace('text-red-500', 'text-gray-400');
+      pushStatusNotSupported.classList.remove('hidden');
+      break;
+  }
+}
+
+// Check push subscription status
+async function checkPushStatus() {
+  // Check browser support
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    updatePushUI('not_supported');
+    return;
+  }
+
+  // Check notification permission
+  if (Notification.permission === 'denied') {
+    updatePushUI('blocked');
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const subscription = await reg.pushManager.getSubscription();
+
+    if (subscription) {
+      currentSubscription = subscription;
+      updatePushUI('enabled');
+
+      // Sync with server silently
+      try {
+        await fetch('/api/push/subscribe/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify(subscription)
+        });
+      } catch (e) {
+        console.log('[MARA] Server sync failed, but subscription exists');
+      }
+    } else {
+      currentSubscription = null;
+      updatePushUI('disabled');
+    }
+  } catch (err) {
+    console.log('[MARA] Push status check failed:', err);
+    updatePushUI('not_supported');
+  }
+}
+
+// Subscribe to push notifications
+async function subscribeToPush() {
+  if (!VAPID_PUBLIC_KEY) {
+    showPushError('Configuration serveur incomplete (VAPID key manquante)');
+    return;
+  }
+
+  // Check if already blocked
+  if (Notification.permission === 'denied') {
+    showPushError('Les notifications sont bloquees dans les parametres de ton navigateur. Va dans les parametres pour autoriser.');
+    updatePushUI('blocked');
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+
+    // Request permission first
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showPushError('Tu as refuse la permission. Autorise les notifications dans les parametres de ton navigateur pour reessayer.');
+      updatePushUI('blocked');
+      return;
+    }
+
+    // Subscribe
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    currentSubscription = subscription;
+
+    // Send to server
+    const response = await fetch('/api/push/subscribe/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(subscription)
+    });
+
+    if (response.ok) {
+      updatePushUI('enabled');
+      showPushSuccess('Notifications activees ! Tu recevras des alertes pour chaque nouveau message.');
+    } else {
+      throw new Error('Server error');
+    }
+  } catch (err) {
+    console.error('[MARA] Push subscription failed:', err);
+    showPushError('Erreur lors de l\'activation. Verifie ta connexion internet et reessaye.');
+    checkPushStatus(); // Reset to actual state
+  }
+}
+
+// Unsubscribe from push notifications
+async function unsubscribeFromPush() {
+  if (!currentSubscription) {
+    checkPushStatus();
+    return;
+  }
+
+  if (!confirm('Tu ne recevras plus de notifications sur cet appareil. Continuer ?')) {
+    return;
+  }
+
+  try {
+    // Unsubscribe from browser
+    await currentSubscription.unsubscribe();
+
+    // Notify server
+    await fetch('/api/push/unsubscribe/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ endpoint: currentSubscription.endpoint })
+    });
+
+    currentSubscription = null;
+    updatePushUI('disabled');
+    showPushSuccess('Notifications desactivees.');
+  } catch (err) {
+    console.error('[MARA] Push unsubscribe failed:', err);
+    showPushError('Erreur lors de la desactivation. Reessaye.');
+    checkPushStatus();
+  }
+}
+
+// Helper functions
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+  toast.className = `fixed bottom-4 left-1/2 -translate-x-1/2 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg text-sm font-bold z-50`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// Radio card selection visual feedback
+document.querySelectorAll('input[name="content_mode"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll('.radio-card').forEach(card => card.classList.remove('selected'));
+    this.closest('.radio-card').classList.add('selected');
+  });
+});
+
+// Initialize
+enablePushBtn.addEventListener('click', subscribeToPush);
+disablePushBtn.addEventListener('click', unsubscribeFromPush);
+checkPushStatus();
+
+// ==================== PHOTO MANAGEMENT ====================
+
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const preview = document.getElementById('photo-preview');
+      // If it's a div with initial, replace with image
+      if (preview.tagName === 'DIV') {
+        const img = document.createElement('img');
+        img.id = 'photo-preview';
+        img.src = e.target.result;
+        img.className = 'w-24 h-24 rounded-full object-cover border-4 border-pink-100';
+        preview.parentNode.replaceChild(img, preview);
+      } else {
+        preview.src = e.target.result;
+      }
+      showToast('Nouvelle photo selectionnee - Sauvegarde pour confirmer');
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function confirmDeletePhoto() {
+  if (confirm('Es-tu sur de vouloir supprimer ta photo de profil ?')) {
+    document.getElementById('delete-photo-flag').value = 'true';
+    const preview = document.getElementById('photo-preview');
+    // Get initial from pseudo display
+    const initial = '{{ user.pseudo|first|upper }}';
+    const div = document.createElement('div');
+    div.id = 'photo-preview';
+    div.className = 'w-24 h-24 rounded-full bg-mara flex items-center justify-center text-white text-2xl font-bold border-4 border-pink-100';
+    div.textContent = initial;
+    if (preview.tagName === 'IMG') {
+      preview.parentNode.replaceChild(div, preview);
+    }
+    showToast('Photo supprimee - Sauvegarde pour confirmer');
+  }
+}
+
+// ==================== PWA INSTALL FALLBACK ====================
+
+// Show install section with manual instructions after 3 seconds if no beforeinstallprompt
+// This helps on iOS/Safari where the event doesn't fire
+setTimeout(() => {
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  // Only show manual install if not already installed and not shown via beforeinstallprompt
+  if (!isStandalone && installSection.classList.contains('hidden') && !deferredPrompt) {
+    installSection.classList.remove('hidden');
+
+    if (isIos) {
+      document.getElementById('ios-instructions').classList.remove('hidden');
+      document.getElementById('install-btn').classList.add('hidden'); // Hide auto-install button on iOS
+    } else if (isAndroid) {
+      document.getElementById('android-instructions').classList.remove('hidden');
+    }
+  }
+}, 3000);
+</script>
+{% endblock %}

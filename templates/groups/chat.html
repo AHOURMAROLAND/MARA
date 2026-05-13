@@ -1,0 +1,495 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ group.name }} — Discussion Anonyme{% endblock %}
+
+{% block extra_head %}
+<style>
+  .chat-container { height: calc(100vh - 160px); overflow-y: auto; scroll-behavior: smooth; }
+  .message-bubble { max-width: 85%; }
+  .message-me { background: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%); color: white; border-bottom-right-radius: 4px; }
+  .message-other { background: white; color: #1f2937; border-bottom-left-radius: 4px; border: 1px solid #f3f4f6; }
+  .nickname-tag { font-size: 0.65rem; font-weight: 800; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.025em; }
+
+  /* Screenshot & Video Protection */
+  @media (pointer: coarse) {
+    body {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+  }
+  
+  /* Anti-capture overlay technique */
+  .no-capture {
+    position: relative;
+  }
+  .no-capture::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.01);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Animations */
+  @keyframes typing {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  .animate-typing { animation: typing 1s infinite; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-screen bg-gray-50">
+  <!-- Chat Header -->
+  <div class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-sm shrink-0">
+    <div class="flex items-center gap-3">
+      <a href="/" class="p-2 -ml-2 text-gray-400 hover:text-gray-600 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </a>
+      <div class="w-10 h-10 rounded-xl bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
+        {% if group.image %}
+          <img src="{{ group.image.url }}" class="w-full h-full object-cover">
+        {% else %}
+          <div class="w-full h-full flex items-center justify-center text-pink-500 bg-pink-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+        {% endif %}
+      </div>
+      <div class="overflow-hidden">
+        <h1 class="font-extrabold text-gray-800 leading-tight truncate">{{ group.name }}</h1>
+        <div class="flex items-center gap-1.5">
+          <span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+          <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider"><span id="active-count">{{ active_count }}</span> en ligne</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      {% if is_owner %}
+      <a href="{% url 'group_settings' group.link_id %}" class="p-2 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 transition shadow-sm border border-gray-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        </svg>
+      </a>
+      {% endif %}
+      <button onclick="copyGroupLink()" class="p-2 bg-pink-50 text-pink-500 rounded-xl hover:bg-pink-100 transition shadow-sm border border-pink-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Nickname Banner (Small) -->
+  <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white text-[10px] py-1.5 px-4 text-center font-bold uppercase tracking-widest shrink-0">
+    Ton pseudo : <span id="current-nickname" class="text-pink-400">{{ participant.nickname }}</span>
+  </div>
+
+  <!-- Messages List -->
+  <div id="chat-messages" class="chat-container flex-1 p-4 space-y-4">
+    {% for m in messages_list %}
+      <div id="msg-{{ m.id }}" class="flex flex-col {% if m.sender_session_token == request.session.ngl_token %}items-end{% else %}items-start{% endif %}" onclick="setReply('{{ m.id }}', '{{ m.sender_nickname }}', '{{ m.text|truncatechars:30|escapejs }}')">
+        <div class="nickname-tag {% if m.sender_session_token == request.session.ngl_token %}text-pink-500{% else %}text-gray-400{% endif %}">
+          {{ m.sender_nickname }}
+        </div>
+        <div class="relative group max-w-full">
+          <div class="message-bubble p-3 rounded-2xl shadow-sm {% if m.sender_session_token == request.session.ngl_token %}message-me{% else %}message-other{% endif %}">
+            {% if m.parent %}
+              <div class="mb-2 p-2 bg-black/10 rounded-lg text-[10px] border-l-2 border-white/50">
+                <span class="font-black uppercase block">{{ m.parent.sender_nickname }}</span>
+                <span class="opacity-80">{{ m.parent.text|truncatechars:50 }}</span>
+              </div>
+            {% endif %}
+            {% if m.image %}
+              <img src="{{ m.image.url }}" class="rounded-lg mb-2 max-w-full" />
+            {% endif %}
+            <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
+            <p class="text-[9px] mt-1 opacity-60 text-right">{{ m.created_at|date:"H:i" }}</p>
+          </div>
+
+          <!-- Reactions Container -->
+          <div id="reactions-{{ m.id }}" class="flex flex-wrap gap-1 mt-1">
+            {% regroup m.reactions.all by emoji as reaction_groups %}
+            {% for g in reaction_groups %}
+              <div class="bg-white border border-gray-100 rounded-full px-1.5 py-0.5 shadow-sm text-[10px] flex items-center gap-1 cursor-pointer hover:bg-gray-50 transition" onclick="event.stopPropagation(); sendReaction('{{ m.id }}', '{{ g.grouper }}')">
+                <span>{{ g.grouper }}</span>
+                <span class="font-bold text-gray-500">{{ g.list|length }}</span>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Quick Reaction Button -->
+          <button class="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block" onclick="event.stopPropagation(); showReactionPicker('{{ m.id }}')">
+            😊
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Reply Preview -->
+  <div id="reply-preview" class="hidden px-4 py-2 bg-gray-100 border-t border-gray-200 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-3 overflow-hidden">
+      <div class="w-1 h-8 bg-pink-500 rounded-full shrink-0"></div>
+      <div class="overflow-hidden">
+        <p id="reply-to-name" class="text-[10px] font-black text-pink-500 uppercase"></p>
+        <p id="reply-to-text" class="text-xs text-gray-500 truncate"></p>
+      </div>
+    </div>
+    <button onclick="cancelReply()" class="p-1 text-gray-400 hover:text-gray-600">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Typing Indicator -->
+  <div id="typing-indicator" class="hidden px-4 py-1.5 bg-white/50 text-[10px] text-gray-400 font-bold italic shrink-0">
+    <span id="typing-text"></span>
+  </div>
+
+  <!-- Input Area -->
+  <div class="p-4 bg-white border-t border-gray-100 shrink-0 pb-8">
+    {% if participant.can_write %}
+    <form id="chat-form" class="max-w-md mx-auto flex items-end gap-2">
+      {% csrf_token %}
+      <input type="hidden" id="reply-id" value="">
+      <div class="flex-1 relative bg-gray-50 rounded-2xl border border-gray-200 focus-within:border-pink-300 transition-all p-1">
+        <textarea 
+          id="message-input" 
+          rows="1" 
+          placeholder="Écris un message..."
+          class="w-full bg-transparent border-none outline-none px-3 py-2 text-sm resize-none max-h-32"
+        ></textarea>
+      </div>
+      <button 
+        type="submit" 
+        id="send-btn"
+        class="w-12 h-12 bg-pink-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-pink-600 active:scale-95 transition disabled:opacity-50"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+      </button>
+    </form>
+    {% else %}
+    <div class="max-w-md mx-auto p-4 bg-red-50 rounded-2xl border border-red-100 text-center">
+      <p class="text-xs text-red-500 font-bold">Tu as été banni de l'écriture par le créateur du groupe.</p>
+      <p class="text-[10px] text-red-400 mt-1">Tu peux toujours lire les messages en direct.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Reaction Picker Modal -->
+<div id="reaction-picker" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/20 backdrop-blur-sm" onclick="hideReactionPicker()">
+  <div class="bg-white rounded-3xl p-4 shadow-2xl flex gap-3 animate-bounce-in" onclick="event.stopPropagation()">
+    <button onclick="sendReactionFromPicker('❤️')" class="text-2xl hover:scale-125 transition">❤️</button>
+    <button onclick="sendReactionFromPicker('😂')" class="text-2xl hover:scale-125 transition">😂</button>
+    <button onclick="sendReactionFromPicker('🔥')" class="text-2xl hover:scale-125 transition">🔥</button>
+    <button onclick="sendReactionFromPicker('😮')" class="text-2xl hover:scale-125 transition">😮</button>
+    <button onclick="sendReactionFromPicker('😢')" class="text-2xl hover:scale-125 transition">😢</button>
+    <button onclick="sendReactionFromPicker('👍')" class="text-2xl hover:scale-125 transition">👍</button>
+  </div>
+</div>
+
+<script>
+  const chatMessages = document.getElementById('chat-messages');
+  const chatForm = document.getElementById('chat-form');
+  const messageInput = document.getElementById('message-input');
+  const sendBtn = document.getElementById('send-btn');
+  const groupLinkId = "{{ group.link_id }}";
+  const myToken = "{{ request.session.ngl_token }}";
+  let lastMessageDate = "{% if messages_list %}{{ messages_list.last.created_at.isoformat }}{% endif %}";
+  let socket = null;
+  let typingTimeout = null;
+  let activeReactionMessageId = null;
+
+  // Initialize WebSocket
+  function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/chat/${groupLinkId}/`;
+    
+    socket = new WebSocket(wsUrl);
+
+    socket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      
+      if (data.type === 'chat_message') {
+        const m = data.message;
+        const now = new Date();
+        m.created_at = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        m.is_me = (m.sender_session_token === myToken);
+        appendMessage(m);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      } 
+      else if (data.type === 'user_typing') {
+        if (data.session_token !== myToken) {
+          showTyping(data.nickname);
+        }
+      }
+      else if (data.type === 'message_reaction') {
+        updateReactionUI(data.reaction);
+      }
+    };
+
+    socket.onclose = function(e) {
+      console.log('Chat socket closed. Reconnecting in 2s...');
+      setTimeout(connectWebSocket, 2000);
+    };
+
+    socket.onerror = function(err) {
+      console.error('Socket encountered error: ', err.message, 'Closing socket');
+      socket.close();
+    };
+  }
+
+  connectWebSocket();
+
+  // Reply System
+  function setReply(id, name, text) {
+    const replyPreview = document.getElementById('reply-preview');
+    const replyId = document.getElementById('reply-id');
+    const replyName = document.getElementById('reply-to-name');
+    const replyText = document.getElementById('reply-to-text');
+    
+    replyId.value = id;
+    replyName.innerText = name;
+    replyText.innerText = text;
+    replyPreview.classList.remove('hidden');
+    messageInput.focus();
+  }
+
+  function cancelReply() {
+    const replyPreview = document.getElementById('reply-preview');
+    const replyId = document.getElementById('reply-id');
+    replyId.value = '';
+    replyPreview.classList.add('hidden');
+  }
+
+  // Typing Status
+  function showTyping(nickname) {
+    const indicator = document.getElementById('typing-indicator');
+    const text = document.getElementById('typing-text');
+    text.innerText = `${nickname} est en train d'écrire...`;
+    indicator.classList.remove('hidden');
+    
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      indicator.classList.add('hidden');
+    }, 3000);
+  }
+
+  function notifyTyping() {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        'type': 'typing',
+        'session_token': myToken
+      }));
+    }
+  }
+
+  // Reactions
+  function showReactionPicker(messageId) {
+    activeReactionMessageId = messageId;
+    document.getElementById('reaction-picker').classList.remove('hidden');
+  }
+
+  function hideReactionPicker() {
+    document.getElementById('reaction-picker').classList.add('hidden');
+    activeReactionMessageId = null;
+  }
+
+  function sendReactionFromPicker(emoji) {
+    if (activeReactionMessageId) {
+      sendReaction(activeReactionMessageId, emoji);
+      hideReactionPicker();
+    }
+  }
+
+  function sendReaction(messageId, emoji) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        'type': 'reaction',
+        'message_id': messageId,
+        'emoji': emoji,
+        'session_token': myToken
+      }));
+    }
+  }
+
+  function updateReactionUI(reaction) {
+    const container = document.getElementById(`reactions-${reaction.message_id}`);
+    if (!container) return;
+
+    // Find existing reaction element for this emoji
+    let reactionEl = null;
+    Array.from(container.children).forEach(child => {
+      if (child.querySelector('span:first-child').innerText === reaction.emoji) {
+        reactionEl = child;
+      }
+    });
+
+    if (reaction.count > 0) {
+      if (!reactionEl) {
+        reactionEl = document.createElement('div');
+        reactionEl.className = "bg-white border border-gray-100 rounded-full px-1.5 py-0.5 shadow-sm text-[10px] flex items-center gap-1 cursor-pointer hover:bg-gray-50 transition";
+        reactionEl.onclick = (e) => {
+          e.stopPropagation();
+          sendReaction(reaction.message_id, reaction.emoji);
+        };
+        reactionEl.innerHTML = `<span>${reaction.emoji}</span><span class="font-bold text-gray-500">${reaction.count}</span>`;
+        container.appendChild(reactionEl);
+      } else {
+        reactionEl.querySelector('span:last-child').innerText = reaction.count;
+      }
+    } else if (reactionEl) {
+      reactionEl.remove();
+    }
+  }
+
+  // Auto-scroll to bottom
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  // Handle Textarea Auto-resize & Typing Notification
+  if (messageInput) {
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+      notifyTyping();
+    });
+  }
+
+  // Copy Group Link
+  function copyGroupLink() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      alert("Lien du groupe copié !");
+    });
+  }
+
+  // Send Message
+  if (chatForm) {
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = messageInput.value.trim();
+      const parentId = document.getElementById('reply-id').value;
+      if (!text) return;
+
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      sendBtn.disabled = true;
+      cancelReply();
+
+      const formData = new FormData();
+      formData.append('text', text);
+      if (parentId) formData.append('parent_id', parentId);
+      formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+      try {
+        const response = await fetch(`/groups/api/g/${groupLinkId}/send/`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+          // Poll immediately for better responsiveness
+          pollMessages();
+        } else if (data.error) {
+          alert(data.error);
+          if (data.error.includes('banni')) window.location.reload();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+  }
+
+  // Polling for new messages
+  async function pollMessages() {
+    try {
+      const gmtOffset = -new Date().getTimezoneOffset();
+      const response = await fetch(`/groups/api/g/${groupLinkId}/messages/?last_id=${encodeURIComponent(lastMessageDate)}&gmt=${gmtOffset}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update active count
+        document.getElementById('active-count').innerText = data.active_count;
+        
+        // Update current nickname if changed
+        if (data.nickname) {
+          document.getElementById('current-nickname').innerText = data.nickname;
+        }
+
+        if (data.messages.length > 0) {
+          data.messages.forEach(m => {
+            appendMessage(m);
+          });
+          lastMessageDate = data.last_id;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }
+    } catch (err) {
+      console.error("Polling error:", err);
+    }
+  }
+
+  function appendMessage(m) {
+    if (document.getElementById(`msg-${m.id}`)) return;
+
+    const div = document.createElement('div');
+    div.id = `msg-${m.id}`;
+    div.className = `flex flex-col ${m.is_me ? 'items-end' : 'items-start'}`;
+    div.onclick = () => setReply(m.id, m.sender_nickname, m.text.substring(0, 30));
+    
+    let parentHtml = '';
+    if (m.parent) {
+      parentHtml = `
+        <div class="mb-2 p-2 bg-black/10 rounded-lg text-[10px] border-l-2 border-white/50">
+          <span class="font-black uppercase block">${m.parent.sender_nickname}</span>
+          <span class="opacity-80">${m.parent.text}</span>
+        </div>
+      `;
+    }
+
+    div.innerHTML = `
+      <div class="nickname-tag ${m.is_me ? 'text-pink-500' : 'text-gray-400'}">
+        ${m.sender_nickname}
+      </div>
+      <div class="relative group max-w-full">
+        <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me' : 'message-other'}">
+          ${parentHtml}
+          ${m.image_url ? `<img src="${m.image_url}" class="rounded-lg mb-2 max-w-full" />` : ''}
+          <p class="text-sm leading-relaxed whitespace-pre-wrap">${m.text}</p>
+          <p class="text-[9px] mt-1 opacity-60 text-right">${m.created_at}</p>
+        </div>
+        <div id="reactions-${m.id}" class="flex flex-wrap gap-1 mt-1"></div>
+        <button class="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block" onclick="event.stopPropagation(); showReactionPicker('${m.id}')">
+          😊
+        </button>
+      </div>
+    `;
+    chatMessages.appendChild(div);
+  }
+
+  setInterval(() => {
+    // Only poll if socket is not connected
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      pollMessages();
+    } else {
+      // Still poll occasionally for active count
+      if (Math.random() > 0.8) pollMessages(); 
+    }
+  }, 3000);
+</script>
+{% endblock %}

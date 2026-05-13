@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}Partager mon profil — MARA{% endblock %}
+
+{% block extra_head %}
+<style>
+  * { font-family: 'Nunito', sans-serif !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+
+  <!-- Header gradient -->
+  <div class="bg-mara px-4 pt-10 pb-10 text-white text-center">
+    {% if user.photo %}
+      <img src="{{ user.photo.url }}" class="w-20 h-20 rounded-full border-4 border-white mx-auto object-cover mb-3"/>
+    {% else %}
+      <div class="w-20 h-20 rounded-full bg-white/30 flex items-center justify-center text-3xl font-bold mx-auto mb-3">
+        {{ user.pseudo|first|upper }}
+      </div>
+    {% endif %}
+    <h2 class="text-xl font-extrabold">@{{ user.pseudo }}</h2>
+    <p class="text-pink-100 text-sm mt-1">envoie-moi des messages anonymes !</p>
+  </div>
+
+  <!-- Contenu -->
+  <div class="max-w-md mx-auto px-4 mt-6 space-y-4">
+
+    <!-- Lien -->
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+      <p class="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">Ton lien unique</p>
+      <div class="flex items-center gap-2">
+        <input
+          type="text"
+          value="{{ share_url }}"
+          readonly
+          id="share-url"
+          class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 outline-none"
+        />
+        <button
+          onclick="copyLink()"
+          class="btn-mara text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 transition"
+        >
+          Copier
+        </button>
+      </div>
+      <p id="copy-feedback" class="text-xs text-green-500 mt-2 hidden">Lien copie !</p>
+    </div>
+
+    <!-- Partage -->
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+      <p class="text-xs text-gray-400 font-medium mb-3 uppercase tracking-wide">Partager sur</p>
+      <div class="grid grid-cols-2 gap-3">
+        <a href="https://wa.me/?text=Envoie-moi%20un%20message%20anonyme%20sur%20MARA%20!%20{{ share_url|urlencode }}"
+           target="_blank"
+           class="flex items-center gap-2 bg-green-50 text-green-700 font-medium text-sm px-4 py-3 rounded-xl hover:bg-green-100 transition">
+          WhatsApp
+        </a>
+        <a href="https://www.instagram.com/"
+           target="_blank"
+           class="flex items-center gap-2 bg-pink-50 text-pink-600 font-medium text-sm px-4 py-3 rounded-xl hover:bg-pink-100 transition">
+          Instagram
+        </a>
+      </div>
+    </div>
+
+    <!-- Push Notification Banner -->
+    <div id="push-banner" class="hidden bg-blue-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+      <div class="absolute top-0 right-0 p-3 opacity-10">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+      </div>
+      <div class="relative z-10">
+        <h3 class="font-extrabold text-base mb-1">Ne rate aucun message ! 🔔</h3>
+        <p class="text-xs text-blue-100 mb-4 leading-relaxed">
+          Active les notifications pour être alerté dès que tu reçois un nouveau message anonyme.
+        </p>
+        <div class="flex gap-2">
+          <button id="enable-push-btn" class="bg-white text-blue-600 font-extrabold py-2.5 px-6 rounded-xl text-xs shadow-md">
+            Activer maintenant
+          </button>
+          <button onclick="dismissPushBanner()" class="text-white/80 font-semibold text-xs py-2.5 px-4">
+            Plus tard
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aller a l'inbox -->
+    <a href="{% url 'inbox' user.link_id %}"
+       class="block w-full text-center btn-mara text-white font-bold py-3 rounded-xl text-sm shadow hover:opacity-90 transition">
+       Voir mes messages
+    </a>
+
+    <!-- Groupes Anonymes -->
+    <div class="bg-white rounded-2xl shadow-sm p-5 border-2 border-dashed border-pink-200">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </div>
+        <h3 class="font-bold text-gray-800">Groupes de discussion</h3>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Crée un groupe et partage le lien pour discuter anonymement avec plusieurs amis en même temps !</p>
+      
+      <form action="{% url 'create_group' %}" method="POST" class="space-y-2">
+        {% csrf_token %}
+        <input type="text" name="name" placeholder="Nom du groupe (ex: Soirée Samedi)" required
+               class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:border-pink-500 outline-none">
+        <button type="submit" class="w-full bg-pink-500 text-white font-bold py-2 rounded-xl text-xs hover:bg-pink-600 transition">
+          Créer un groupe anonyme
+        </button>
+      </form>
+
+      {% if user.created_groups.exists %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+          <p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Mes groupes actifs</p>
+          <div class="space-y-2">
+            {% for g in user.created_groups.all %}
+              <a href="{% url 'group_chat' g.link_id %}" class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-pink-50 transition group">
+                <span class="text-xs font-semibold text-gray-700 group-hover:text-pink-600">{{ g.name }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300 group-hover:text-pink-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Deconnexion -->
+    <a href="{% url 'logout' %}" class="block text-center text-xs text-gray-400 mt-2 hover:text-red-400">
+      Se deconnecter
+    </a>
+  </div>
+</div>
+
+<script>
+function copyLink() {
+  const url = document.getElementById('share-url').value;
+  navigator.clipboard.writeText(url).then(() => {
+    const fb = document.getElementById('copy-feedback');
+    fb.classList.remove('hidden');
+    setTimeout(() => fb.classList.add('hidden'), 2000);
+  });
+}
+
+// ==================== PUSH NOTIFICATIONS ====================
+const pushBanner = document.getElementById('push-banner');
+const enablePushBtn = document.getElementById('enable-push-btn');
+const VAPID_PUBLIC_KEY = '{{ VAPID_PUBLIC_KEY|default:"" }}';
+
+function dismissPushBanner() {
+  pushBanner.classList.add('hidden');
+  localStorage.setItem('mara_push_dismissed', 'true');
+}
+
+async function checkPushStatus() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (Notification.permission === 'denied') return;
+  if (localStorage.getItem('mara_push_dismissed') === 'true') return;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const subscription = await reg.pushManager.getSubscription();
+
+    if (!subscription) {
+      // Show banner after 2 seconds
+      setTimeout(() => {
+        pushBanner.classList.remove('hidden');
+      }, 2000);
+    }
+  } catch (err) {
+    console.log('[MARA] Push status check failed:', err);
+  }
+}
+
+async function subscribeToPush() {
+  if (!VAPID_PUBLIC_KEY) return;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const permission = await Notification.requestPermission();
+    
+    if (permission === 'granted') {
+      const subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+
+      const response = await fetch('/api/push/subscribe/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription)
+      });
+
+      if (response.ok) {
+        pushBanner.classList.add('hidden');
+        alert('Notifications activées !');
+      }
+    } else {
+      pushBanner.classList.add('hidden');
+    }
+  } catch (err) {
+    console.error('[MARA] Push subscription failed:', err);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+if (enablePushBtn) {
+  enablePushBtn.addEventListener('click', subscribeToPush);
+}
+
+document.addEventListener('DOMContentLoaded', checkPushStatus);
+</script>
+{% endblock %}

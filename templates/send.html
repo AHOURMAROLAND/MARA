@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Envoie un message anonyme a @{{ recipient.pseudo }} — MARA{% endblock %}
+{% block meta_title %}@{{ recipient.pseudo }} — Envoie-moi des messages anonymes !{% endblock %}
+{% block meta_desc %}Clique pour envoyer un message anonyme a @{{ recipient.pseudo }} via MARA. Reponds en toute confidentialite !{% endblock %}
+
+<!-- Open Graph / Facebook -->
+{% block og_title %}@{{ recipient.pseudo }} — Envoie-moi des messages anonymes !{% endblock %}
+{% block og_description %}Clique pour envoyer un message anonyme a @{{ recipient.pseudo }} via MARA. 100% confidentiel !{% endblock %}
+{% block og_image %}{% if recipient.photo %}{{ recipient.photo.url }}{% else %}{{ APP_DEFAULT_IMAGE }}{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+<!-- Twitter Card -->
+{% block tw_title %}@{{ recipient.pseudo }} — Envoie-moi des messages anonymes !{% endblock %}
+{% block tw_desc %}Message anonyme via MARA pour @{{ recipient.pseudo }}. Reponds sans que je sache qui tu es !{% endblock %}
+{% block tw_image %}{% if recipient.photo %}{{ recipient.photo.url }}{% else %}{{ APP_DEFAULT_IMAGE }}{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  * { font-family: 'Nunito', sans-serif; }
+  .send-card {
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(255,80,120,0.15);
+  }
+  .card-header-send {
+    background: linear-gradient(135deg, #FF5078, #FF8C42);
+    padding: 20px;
+    text-align: center;
+  }
+  .card-body-send {
+    background: white;
+    padding: 20px;
+  }
+  textarea:focus { outline: none; box-shadow: 0 0 0 2px #FF507844; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
+
+  <!-- Photo de profil au-dessus -->
+  <div class="mb-4 flex flex-col items-center">
+    {% if recipient.photo %}
+      <img src="{{ recipient.photo.url }}" alt="{{ recipient.pseudo }}"
+           class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md mb-2"/>
+    {% else %}
+      <div class="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-extrabold border-4 border-white shadow-md mb-2"
+           style="background:linear-gradient(135deg,#FF5078,#FF8C42)">
+        {{ recipient.pseudo|first|upper }}
+      </div>
+    {% endif %}
+    <p class="font-extrabold text-gray-800">@{{ recipient.pseudo }}</p>
+  </div>
+
+  <!-- Carte style NGL -->
+  <div class="send-card w-full max-w-sm">
+
+    <!-- Header gradient -->
+    <div class="card-header-send">
+      <p class="text-white font-extrabold text-base leading-snug">
+        envoie-moi des messages<br>anonymes !
+      </p>
+    </div>
+
+    <!-- Corps formulaire -->
+    <div class="card-body-send">
+
+      {% if error %}
+        <div class="bg-red-50 text-red-500 text-sm rounded-xl px-4 py-2 mb-3 font-semibold">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" enctype="multipart/form-data" class="space-y-3">
+        {% csrf_token %}
+
+        <textarea
+          name="text"
+          placeholder="Pose une question ou envoie un message..."
+          rows="4"
+          class="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm resize-none bg-gray-50 font-semibold text-gray-700"
+        ></textarea>
+
+        {% if recipient.accepts_images %}
+        <div class="border border-dashed border-pink-200 rounded-2xl p-3 space-y-2 bg-pink-50">
+          <label class="block text-xs text-pink-400 font-bold">Photo - Ajouter une image (optionnel)</label>
+          <input type="file" name="image" accept="image/*" id="image-input"
+            class="block w-full text-xs text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:bg-white file:text-pink-500 file:font-bold"/>
+          <input type="text" name="caption" placeholder="Legende..."
+            class="w-full border border-pink-100 rounded-xl px-3 py-2 text-xs bg-white font-semibold outline-none"/>
+        </div>
+        {% endif %}
+
+        <button type="submit"
+          class="w-full text-white font-extrabold py-4 rounded-2xl text-sm shadow"
+          style="background:linear-gradient(135deg,#FF5078,#FF8C42)">
+          Envoyer anonymement
+        </button>
+      </form>
+
+      <p class="text-center text-xs text-gray-400 mt-3 font-semibold">
+        👇 <strong>{{ visitor_count }}</strong> des potes viennent d'envoyer un message
+      </p>
+    </div>
+  </div>
+
+  <!-- CTA creer profil -->
+  <div class="mt-4 w-full max-w-sm">
+    <a href="{% url 'home' %}"
+       class="block w-full text-center bg-black text-white font-extrabold py-4 rounded-2xl text-sm">
+      Recois tes propres messages !
+    </a>
+  </div>
+
+  <p class="text-gray-300 text-xs mt-4">
+    <a href="{% url 'terms' %}">Terms</a> · <a href="{% url 'privacy' %}">Privacy</a>
+  </p>
+</div>
+{% endblock %}
+

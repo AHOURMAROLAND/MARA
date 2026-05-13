@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: mara-app
+    env: python
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    startCommand: "python manage.py migrate && daphne -b 0.0.0.0 -p $PORT config.asgi:application"
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mara-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_CLAIMS_SUB
+        value: "mailto:admin@example.com"
+
+  - type: static
+    name: mara-static
+    env: static
+    buildCommand: "python manage.py collectstatic --noinput"
+    publishPath: "staticfiles"
+    headers:
+      - path: "*"
+        name: "Cache-Control"
+        value: "public, max-age=31536000"
+
+databases:
+  - name: mara-db
+    databaseName: mara
+    user: mara
+    plan: free

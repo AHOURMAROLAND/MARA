@@ -1,0 +1,287 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- Primary Meta Tags -->
+  <title>{% block title %}MARA — Message At Random Anonymous{% endblock %}</title>
+  <meta name="title" content="{% block meta_title %}MARA — Message At Random Anonymous{% endblock %}"/>
+  <meta name="description" content="{% block meta_desc %}MARA — Envoie et reçois des messages anonymes. Partage ton lien et reçois des messages de tes amis en toute confidentialité.{% endblock %}"/>
+  <meta name="keywords" content="messages anonymes, NGL, MARA, messages secrets, confidentialité, anonyme"/>
+  <meta name="author" content="MARA"/>
+  <meta name="robots" content="index, follow"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FF2D55">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="msapplication-TileImage" content="{% static 'img/mara-192x192.png' %}"/>
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="MARA"/>
+  <meta property="og:url" content="{% block og_url %}{{ APP_URL }}{% endblock %}"/>
+  <meta property="og:title" content="{% block og_title %}MARA — Envoie-moi des messages anonymes !{% endblock %}"/>
+  <meta property="og:description" content="{% block og_description %}Envoie un message anonyme via MARA — Message At Random Anonymous{% endblock %}"/>
+  <meta property="og:image" content="{% block og_image %}{{ APP_DEFAULT_IMAGE }}{% endblock %}"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:locale" content="fr_FR"/>
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:site" content="@maraapp"/>
+  <meta name="twitter:title" content="{% block tw_title %}MARA{% endblock %}"/>
+  <meta name="twitter:description" content="{% block tw_desc %}Envoie-moi des messages anonymes !{% endblock %}"/>
+  <meta name="twitter:image" content="{% block tw_image %}{{ APP_DEFAULT_IMAGE }}{% endblock %}"/>
+
+  <!-- PWA / Apple -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="MARA"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="application-name" content="MARA"/>
+
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon-16x16.png' %}"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32x32.png' %}"/>
+  <link rel="icon" type="image/png" sizes="48x48" href="{% static 'img/favicon-48x48.png' %}"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}"/>
+  <link rel="manifest" href="/manifest.json"/>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            mara: {
+              pink: '#FF5078',
+              orange: '#FF8C42',
+            }
+          },
+          backgroundImage: {
+            'mara-gradient': 'linear-gradient(135deg, #FF5078 0%, #FF8C42 100%)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+    * { font-family: 'Nunito', sans-serif; }
+    .bg-mara { background: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%); }
+    .text-mara { background: linear-gradient(135deg, #FF5078, #FF8C42); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .btn-mara { background: linear-gradient(135deg, #FF5078, #FF8C42); }
+    
+    /* Skeleton Loading */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skeleton-avatar { width: 80px; height: 80px; border-radius: 50%; }
+    .skeleton-text { height: 16px; margin: 8px 0; }
+    .skeleton-title { height: 24px; width: 60%; margin: 12px auto; }
+    .skeleton-card { height: 100px; margin: 16px 0; }
+    
+    /* Page Transition */
+    .page-content {
+      opacity: 1;
+      transition: opacity 0.2s ease;
+    }
+    .page-content.loading {
+      opacity: 0.5;
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+  <!-- Skeleton Loader (hidden by default) -->
+  <div id="skeleton-loader" class="hidden min-h-screen bg-gray-50 pb-20">
+    <div class="bg-mara px-4 pt-10 pb-10 text-center">
+      <div class="skeleton skeleton-avatar mx-auto mb-3"></div>
+      <div class="skeleton skeleton-title" style="background: rgba(255,255,255,0.3);"></div>
+      <div class="skeleton skeleton-text mx-auto" style="width: 40%; background: rgba(255,255,255,0.2);"></div>
+    </div>
+    <div class="max-w-md mx-auto px-4 mt-6">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card" style="height: 50px;"></div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="page-content" class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- In-app push notification UI -->
+  <div id="in-app-push" class="fixed top-4 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl p-4 w-11/12 max-w-sm z-[100] transform -translate-y-[150%] opacity-0 transition-all duration-500 ease-out flex items-center gap-4 cursor-pointer border border-gray-100">
+    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 shadow-inner" style="background:linear-gradient(135deg,#FF5078,#FF8C42)">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    </div>
+    <div class="flex-1">
+      <h4 class="font-extrabold text-gray-800 text-sm mb-0.5">Nouveau Message !</h4>
+      <p id="in-app-push-text" class="text-xs text-gray-500 font-semibold truncate max-w-[200px]"></p>
+    </div>
+    <button onclick="hideInAppPush(event)" class="text-gray-300 hover:text-gray-500 p-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    let inAppPushTimeout;
+    let lastCheckedMsgId = 0;
+    let isFirstCheck = true;
+    
+    function showInAppPush(text, link_id) {
+      const pushEl = document.getElementById('in-app-push');
+      document.getElementById('in-app-push-text').innerText = text || "Tu as reçu un nouveau message anonyme !";
+      pushEl.onclick = () => { window.location.href = '/inbox/' + link_id + '/'; };
+      
+      pushEl.classList.remove('-translate-y-[150%]', 'opacity-0');
+      pushEl.classList.add('translate-y-0', 'opacity-100');
+      
+      // Auto-hide after 5s
+      clearTimeout(inAppPushTimeout);
+      inAppPushTimeout = setTimeout(() => {
+        hideInAppPush();
+      }, 5000);
+      
+      // Play sound notification
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 0.5;
+        audio.play();
+      } catch(e) {}
+    }
+    
+    function hideInAppPush(e) {
+      if(e) e.stopPropagation();
+      const pushEl = document.getElementById('in-app-push');
+      pushEl.classList.remove('translate-y-0', 'opacity-100');
+      pushEl.classList.add('-translate-y-[150%]', 'opacity-0');
+    }
+
+    // Polling si l'utilisateur est connecte
+    {% if user %}
+    setInterval(() => {
+      fetch('/api/check-messages/?last_id=' + lastCheckedMsgId)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            if (data.has_new && !isFirstCheck) {
+              showInAppPush(data.text, data.link_id);
+            }
+            lastCheckedMsgId = data.last_id;
+            isFirstCheck = false;
+          }
+        })
+        .catch(e => console.error(e));
+    }, 3000);
+    {% endif %}
+  </script>
+  
+  <script>
+    // Register PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('[MARA] Service Worker registered'))
+        .catch(err => console.log('[MARA] Service Worker registration failed:', err));
+    }
+
+    // ===== MARA SESSION RECOVERY =====
+    // Sauvegarde link_id + reconnect_token dans localStorage apres connexion
+    // et tente une reconnexion automatique si le cookie est perdu.
+    (function() {
+      const LS_KEY = 'mara_auth';
+
+      {% if user and user.reconnect_token %}
+      window.__MARA_AUTH__ = {
+        link_id: "{{ user.link_id }}",
+        reconnect_token: "{{ user.reconnect_token }}"
+      };
+      {% endif %}
+
+      // Lire les donnees injectees par Django (disponibles sur les pages owner)
+      const authData = window.__MARA_AUTH__ || null;
+      if (authData && authData.link_id && authData.reconnect_token) {
+        localStorage.setItem(LS_KEY, JSON.stringify(authData));
+      }
+
+      // Si l'utilisateur n'est pas connecte ET des donnees en localStorage → reconnexion
+      const isLogged = {% if user %}true{% else %}false{% endif %};
+      if (!isLogged) {
+        const stored = localStorage.getItem(LS_KEY);
+        if (stored) {
+          try {
+            const data = JSON.parse(stored);
+            if (data.link_id && data.reconnect_token) {
+              fetch('/api/reconnect/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  link_id: data.link_id,
+                  reconnect_token: data.reconnect_token
+                })
+              })
+              .then(r => r.json())
+              .then(res => {
+                if (res.success) {
+                  console.log('[MARA] Session restauree pour @' + res.pseudo);
+                  // Recharge seulement si on est sur la page d'accueil
+                  if (window.location.pathname === '/') {
+                    window.location.href = res.redirect;
+                  } else {
+                    window.location.reload();
+                  }
+                } else {
+                  // Token invalide, nettoyer le localStorage
+                  localStorage.removeItem(LS_KEY);
+                }
+              })
+              .catch(() => { /* Silencieux si pas de reseau */ });
+            }
+          } catch(e) {
+            localStorage.removeItem(LS_KEY);
+          }
+        }
+      }
+    })();
+
+
+    // Simple page loading indicator
+    (function() {
+      const skeletonLoader = document.getElementById('skeleton-loader');
+      
+      // Show skeleton on page load
+      window.addEventListener('beforeunload', function() {
+        skeletonLoader.classList.remove('hidden');
+      });
+      
+      // Hide skeleton when page is fully loaded
+      window.addEventListener('load', function() {
+        skeletonLoader.classList.add('hidden');
+      });
+    })();
+  </script>
+</body>
+</html>

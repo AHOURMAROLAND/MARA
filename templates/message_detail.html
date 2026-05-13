@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}Message — MARA{% endblock %}
+
+{% block extra_head %}
+<style>
+  * { font-family: 'Nunito', sans-serif !important; }
+  
+  .ngl-card {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    overflow: hidden;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+  
+  .ngl-header {
+    background: linear-gradient(135deg, #FF2D55 0%, #FF6B35 50%, #FF8C42 100%);
+    padding: 24px 20px 20px;
+    text-align: center;
+    position: relative;
+  }
+  
+  .ngl-header::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: white;
+    border-radius: 20px 20px 0 0;
+  }
+  
+  .ngl-header-text {
+    color: white;
+    font-weight: 800;
+    font-size: 16px;
+    line-height: 1.4;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .ngl-body {
+    padding: 24px 20px 28px;
+    text-align: center;
+    background: white;
+  }
+  
+  .ngl-message {
+    color: #1a1a1a;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.35;
+    margin-bottom: 16px;
+  }
+  
+  .ngl-time {
+    color: #999;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .ngl-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 100px;
+    font-weight: 700;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+  
+  .ngl-btn:active {
+    transform: scale(0.98);
+  }
+  
+  .ngl-btn-gradient {
+    background: linear-gradient(135deg, #FF2D55, #FF6B35);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255,45,85,0.3);
+  }
+  
+  .ngl-btn-black {
+    background: #000;
+    color: white;
+  }
+  
+  .ngl-btn-outline {
+    background: #f5f5f5;
+    color: #666;
+  }
+  
+  .ngl-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  
+  .ngl-actions button {
+    flex: 1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+  
+  <!-- Header Navigation -->
+  <div class="px-4 py-3">
+    <a href="{% url 'inbox' user.link_id %}" class="inline-flex items-center gap-1 text-sm text-gray-400 font-semibold">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Retour
+    </a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col items-center justify-center px-4 pb-6">
+    
+    <!-- NGL Style Card -->
+    <div class="ngl-card">
+      <!-- Gradient Header -->
+      <div class="ngl-header">
+        <p class="ngl-header-text">
+          send me anonymous<br>messages!
+        </p>
+      </div>
+      
+      <!-- Message Body -->
+      <div class="ngl-body">
+        {% if msg.image %}
+        <div class="mb-4 rounded-xl overflow-hidden">
+          <img src="{{ msg.image.url }}" alt="Image" class="w-full object-cover" style="max-height: 200px;"/>
+        </div>
+        {% if msg.image_caption %}
+          <p class="text-gray-600 text-sm font-semibold mb-2">{{ msg.image_caption }}</p>
+        {% endif %}
+        {% endif %}
+        
+        {% if msg.text %}
+        <p class="ngl-message">
+          {{ msg.text }}
+        </p>
+        {% endif %}
+        
+        <p class="ngl-time">{{ msg.created_at|date:"d/m/Y" }} à {{ msg.created_at|date:"H:i" }}</p>
+      </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="w-full max-w-[340px] mt-5 space-y-3">
+      
+      <!-- Reply button -->
+      <button class="ngl-btn ngl-btn-black" onclick="replyToMessage()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+        </svg>
+        reply
+      </button>
+      
+      <!-- Delete & Report -->
+      <div class="ngl-actions">
+        <form method="POST" action="{% url 'report_message' user.link_id msg.id %}" class="flex-1">
+          {% csrf_token %}
+          <button type="submit" class="ngl-btn ngl-btn-outline text-red-500">
+            Signaler
+          </button>
+        </form>
+        <form method="POST" action="{% url 'delete_message' user.link_id msg.id %}" class="flex-1">
+          {% csrf_token %}
+          <button type="submit" class="ngl-btn ngl-btn-outline text-gray-500">
+            Supprimer
+          </button>
+        </form>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<script>
+function replyToMessage() {
+  const shareUrl = '{{ request.scheme }}://{{ request.get_host }}/m/send/{{ user.link_id }}/';
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    alert('Lien copié ! Partage-le pour recevoir une réponse.');
+  });
+}
+</script>
+{% endblock %}
+
