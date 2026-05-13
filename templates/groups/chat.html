@@ -6,36 +6,85 @@
 {% block extra_head %}
 <style>
   :root { --vh: 1vh; }
-  .chat-container { height: calc(var(--vh, 1vh) * 100 - 160px); overflow-y: auto; scroll-behavior: smooth; }
-  .message-bubble { max-width: 85%; position: relative; }
-  .message-me { background: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%); color: white; border-bottom-right-radius: 4px; }
-  .message-other { background: white; color: #1f2937; border-bottom-left-radius: 4px; border: 1px solid #f3f4f6; }
-  .nickname-tag { font-size: 0.65rem; font-weight: 800; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.025em; }
+  body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
+  
+  .chat-container { 
+    height: calc(var(--vh, 1vh) * 100 - 180px); 
+    overflow-y: auto; 
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .message-bubble { 
+    max-width: 82%; 
+    position: relative; 
+    padding: 12px 16px !important;
+    font-size: 1.05rem !important;
+    line-height: 1.5 !important;
+    border-radius: 20px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+  }
+  
+  .message-me { 
+    background: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%); 
+    color: white; 
+    border-bottom-right-radius: 4px !important; 
+  }
+  
+  .message-other { 
+    background: white; 
+    color: #1f2937; 
+    border-bottom-left-radius: 4px !important; 
+    border: 1px solid #f3f4f6; 
+  }
+  
+  .nickname-tag { 
+    font-size: 0.75rem; 
+    font-weight: 800; 
+    margin-bottom: 4px; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+  }
+
+  /* Input Area Fix for iOS */
+  .input-area {
+    padding-bottom: env(safe-area-inset-bottom, 24px) !important;
+    background: white;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
+  }
 
   /* Reactions */
   .reaction-badge {
     background: white;
     border: 1px solid #f3f4f6;
     border-radius: 9999px;
-    padding: 2px 6px;
-    font-size: 10px;
+    padding: 4px 10px;
+    font-size: 12px;
     display: flex;
     align-items: center;
-    gap: 2px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    gap: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     cursor: pointer;
     transition: all 0.2s;
-  }
-  .reaction-badge:active { transform: scale(0.9); }
-  .message-me .reaction-badge { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: white; }
-
-  /* Screenshot & Video Protection */
-  @media (pointer: coarse) {
-    body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-    .reaction-btn-mobile { display: flex !important; }
-    .reaction-btn-desktop { display: none !important; }
+    margin-top: 4px;
   }
   
+  .reaction-btn-mobile {
+    display: flex !important;
+    width: 36px;
+    height: 36px;
+    background: #f3f4f6;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 640px) {
+    .max-chat-width { max-width: 600px; margin: 0 auto; }
+  }
+
   /* Animations */
   @keyframes typing { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
   .animate-typing { animation: typing 1s infinite; }
@@ -50,7 +99,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col h-screen bg-gray-50">
+<div class="flex flex-col h-screen bg-gray-50 max-chat-width">
   <!-- Chat Header -->
   <div class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-sm shrink-0">
     <div class="flex items-center gap-3">
@@ -179,25 +228,25 @@
   </div>
 
   <!-- Input Area -->
-  <div class="p-4 bg-white border-t border-gray-100 shrink-0 pb-8">
+  <div class="input-area p-4 shrink-0">
     {% if participant.can_write %}
-    <form id="chat-form" class="max-w-md mx-auto flex items-end gap-2">
+    <form id="chat-form" class="flex items-end gap-2">
       {% csrf_token %}
       <input type="hidden" id="reply-id" value="">
-      <div class="flex-1 relative bg-gray-50 rounded-2xl border border-gray-200 focus-within:border-pink-300 transition-all p-1">
+      <div class="flex-1 relative bg-gray-100 rounded-3xl border-2 border-transparent focus-within:border-pink-300 transition-all p-1">
         <textarea 
           id="message-input" 
           rows="1" 
           placeholder="Écris un message..."
-          class="w-full bg-transparent border-none outline-none px-3 py-2 text-sm resize-none max-h-32"
+          class="w-full bg-transparent border-none outline-none px-4 py-3 text-base resize-none max-h-32"
         ></textarea>
       </div>
       <button 
         type="submit" 
         id="send-btn"
-        class="w-12 h-12 bg-pink-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-pink-600 active:scale-95 transition disabled:opacity-50"
+        class="w-14 h-14 bg-pink-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-pink-600 active:scale-95 transition disabled:opacity-50 shrink-0"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
         </svg>
       </button>
@@ -445,22 +494,23 @@
       const data = await response.json();
       
       if (data.success) {
-        // Update active count
-        document.getElementById('active-count').innerText = data.active_count;
-        
-        // Update current nickname if changed
-        if (data.nickname) {
-          document.getElementById('current-nickname').innerText = data.nickname;
-        }
+          // Update active count
+          document.getElementById('active-count').innerText = data.active_count;
+          
+          // Update current nickname if changed
+          if (data.nickname) {
+            document.getElementById('current-nickname').innerText = data.nickname;
+          }
 
-        if (data.messages.length > 0) {
-          data.messages.forEach(m => {
-            appendMessage(m);
-          });
-          lastMessageDate = data.last_id;
-          chatMessages.scrollTop = chatMessages.scrollHeight;
+          if (data.messages.length > 0) {
+            data.messages.forEach(m => {
+              appendMessage(m);
+            });
+            lastMessageDate = data.last_id;
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+          }
         }
-      }
     } catch (err) {
       console.error("Polling error:", err);
     }
