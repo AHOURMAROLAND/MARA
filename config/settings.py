@@ -28,11 +28,24 @@ INSTALLED_APPS = [
 
 # Channels configuration
 ASGI_APPLICATION = 'config.asgi.application'
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
+
+if not DEBUG:
+    # Production: Use PostgreSQL as channel layer (works well on Render free)
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_postgres.core.PostgresChannelLayer',
+            'CONFIG': {
+                'ENGINE': 'django.db.backends.postgresql',
+            },
+        },
+    }
+else:
+    # Development: Local memory is fine
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 # Cloudinary Configuration
 CLOUDINARY_STORAGE = {

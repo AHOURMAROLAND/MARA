@@ -5,40 +5,47 @@
 
 {% block extra_head %}
 <style>
-  .chat-container { height: calc(100vh - 160px); overflow-y: auto; scroll-behavior: smooth; }
-  .message-bubble { max-width: 85%; }
+  :root { --vh: 1vh; }
+  .chat-container { height: calc(var(--vh, 1vh) * 100 - 160px); overflow-y: auto; scroll-behavior: smooth; }
+  .message-bubble { max-width: 85%; position: relative; }
   .message-me { background: linear-gradient(135deg, #FF5078 0%, #FF8C42 100%); color: white; border-bottom-right-radius: 4px; }
   .message-other { background: white; color: #1f2937; border-bottom-left-radius: 4px; border: 1px solid #f3f4f6; }
   .nickname-tag { font-size: 0.65rem; font-weight: 800; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.025em; }
 
+  /* Reactions */
+  .reaction-badge {
+    background: white;
+    border: 1px solid #f3f4f6;
+    border-radius: 9999px;
+    padding: 2px 6px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reaction-badge:active { transform: scale(0.9); }
+  .message-me .reaction-badge { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: white; }
+
   /* Screenshot & Video Protection */
   @media (pointer: coarse) {
-    body {
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
-    }
+    body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    .reaction-btn-mobile { display: flex !important; }
+    .reaction-btn-desktop { display: none !important; }
   }
   
-  /* Anti-capture overlay technique */
-  .no-capture {
-    position: relative;
-  }
-  .no-capture::after {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(255,255,255,0.01);
-    pointer-events: none;
-    z-index: 100;
-  }
-
   /* Animations */
-  @keyframes typing {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
-  }
+  @keyframes typing { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
   .animate-typing { animation: typing 1s infinite; }
+  
+  @keyframes bounce-in {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .animate-bounce-in { animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 </style>
 {% endblock %}
 
@@ -96,40 +103,55 @@
   <!-- Messages List -->
   <div id="chat-messages" class="chat-container flex-1 p-4 space-y-4">
     {% for m in messages_list %}
-      <div id="msg-{{ m.id }}" class="flex flex-col {% if m.sender_session_token == request.session.ngl_token %}items-end{% else %}items-start{% endif %}" onclick="setReply('{{ m.id }}', '{{ m.sender_nickname }}', '{{ m.text|truncatechars:30|escapejs }}')">
+      <div id="msg-{{ m.id }}" class="flex flex-col {% if m.sender_session_token == request.session.ngl_token %}items-end{% else %}items-start{% endif %}">
         <div class="nickname-tag {% if m.sender_session_token == request.session.ngl_token %}text-pink-500{% else %}text-gray-400{% endif %}">
           {{ m.sender_nickname }}
         </div>
-        <div class="relative group max-w-full">
-          <div class="message-bubble p-3 rounded-2xl shadow-sm {% if m.sender_session_token == request.session.ngl_token %}message-me{% else %}message-other{% endif %}">
+        
+        <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
+          <!-- Desktop Reaction Btn -->
+          {% if m.sender_session_token != request.session.ngl_token %}
+          <button class="reaction-btn-desktop opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block order-2" onclick="showReactionPicker('{{ m.id }}')">
+            😊
+          </button>
+          {% endif %}
+
+          <div class="message-bubble p-3 rounded-2xl shadow-sm {% if m.sender_session_token == request.session.ngl_token %}message-me order-1{% else %}message-other order-1{% endif %}" 
+               onclick="setReply('{{ m.id }}', '{{ m.sender_nickname }}', '{{ m.text|truncatechars:30|escapejs }}')"
+               oncontextmenu="event.preventDefault(); showReactionPicker('{{ m.id }}')">
+            
             {% if m.parent %}
-              <div class="mb-2 p-2 bg-black/10 rounded-lg text-[10px] border-l-2 border-white/50">
-                <span class="font-black uppercase block">{{ m.parent.sender_nickname }}</span>
-                <span class="opacity-80">{{ m.parent.text|truncatechars:50 }}</span>
+              <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden">
+                <span class="font-black uppercase block text-[8px] opacity-70">{{ m.parent.sender_nickname }}</span>
+                <span class="opacity-80 truncate block">{{ m.parent.text }}</span>
               </div>
             {% endif %}
+            
             {% if m.image %}
               <img src="{{ m.image.url }}" class="rounded-lg mb-2 max-w-full" />
             {% endif %}
+            
             <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
             <p class="text-[9px] mt-1 opacity-60 text-right">{{ m.created_at|date:"H:i" }}</p>
+
+            <!-- Reactions Row -->
+            <div id="reactions-{{ m.id }}" class="flex flex-wrap gap-1 mt-1.5">
+              {% regroup m.reactions.all by emoji as reaction_groups %}
+              {% for g in reaction_groups %}
+                <div class="reaction-badge" onclick="event.stopPropagation(); sendReaction('{{ m.id }}', '{{ g.grouper }}')">
+                  <span>{{ g.grouper }}</span>
+                  <span class="font-bold">{{ g.list|length }}</span>
+                </div>
+              {% endfor %}
+            </div>
           </div>
 
-          <!-- Reactions Container -->
-          <div id="reactions-{{ m.id }}" class="flex flex-wrap gap-1 mt-1">
-            {% regroup m.reactions.all by emoji as reaction_groups %}
-            {% for g in reaction_groups %}
-              <div class="bg-white border border-gray-100 rounded-full px-1.5 py-0.5 shadow-sm text-[10px] flex items-center gap-1 cursor-pointer hover:bg-gray-50 transition" onclick="event.stopPropagation(); sendReaction('{{ m.id }}', '{{ g.grouper }}')">
-                <span>{{ g.grouper }}</span>
-                <span class="font-bold text-gray-500">{{ g.list|length }}</span>
-              </div>
-            {% endfor %}
-          </div>
-
-          <!-- Quick Reaction Button -->
-          <button class="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block" onclick="event.stopPropagation(); showReactionPicker('{{ m.id }}')">
+          <!-- Mobile Reaction Btn -->
+          {% if m.sender_session_token != request.session.ngl_token %}
+          <button class="reaction-btn-mobile hidden items-center justify-center w-8 h-8 bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('{{ m.id }}')">
             😊
           </button>
+          {% endif %}
         </div>
       </div>
     {% endfor %}
@@ -190,14 +212,14 @@
 </div>
 
 <!-- Reaction Picker Modal -->
-<div id="reaction-picker" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/20 backdrop-blur-sm" onclick="hideReactionPicker()">
-  <div class="bg-white rounded-3xl p-4 shadow-2xl flex gap-3 animate-bounce-in" onclick="event.stopPropagation()">
-    <button onclick="sendReactionFromPicker('❤️')" class="text-2xl hover:scale-125 transition">❤️</button>
-    <button onclick="sendReactionFromPicker('😂')" class="text-2xl hover:scale-125 transition">😂</button>
-    <button onclick="sendReactionFromPicker('🔥')" class="text-2xl hover:scale-125 transition">🔥</button>
-    <button onclick="sendReactionFromPicker('😮')" class="text-2xl hover:scale-125 transition">😮</button>
-    <button onclick="sendReactionFromPicker('😢')" class="text-2xl hover:scale-125 transition">😢</button>
-    <button onclick="sendReactionFromPicker('👍')" class="text-2xl hover:scale-125 transition">👍</button>
+<div id="reaction-picker" class="hidden fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-sm" onclick="hideReactionPicker()">
+  <div class="bg-white rounded-t-3xl sm:rounded-3xl p-6 sm:p-4 shadow-2xl w-full sm:w-auto flex flex-wrap justify-center gap-4 sm:gap-3 animate-bounce-in" onclick="event.stopPropagation()">
+    <button onclick="sendReactionFromPicker('❤️')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">❤️</button>
+    <button onclick="sendReactionFromPicker('😂')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">😂</button>
+    <button onclick="sendReactionFromPicker('🔥')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">🔥</button>
+    <button onclick="sendReactionFromPicker('😮')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">😮</button>
+    <button onclick="sendReactionFromPicker('😢')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">😢</button>
+    <button onclick="sendReactionFromPicker('👍')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">👍</button>
   </div>
 </div>
 
@@ -341,12 +363,12 @@
     if (reaction.count > 0) {
       if (!reactionEl) {
         reactionEl = document.createElement('div');
-        reactionEl.className = "bg-white border border-gray-100 rounded-full px-1.5 py-0.5 shadow-sm text-[10px] flex items-center gap-1 cursor-pointer hover:bg-gray-50 transition";
+        reactionEl.className = "reaction-badge";
         reactionEl.onclick = (e) => {
           e.stopPropagation();
           sendReaction(reaction.message_id, reaction.emoji);
         };
-        reactionEl.innerHTML = `<span>${reaction.emoji}</span><span class="font-bold text-gray-500">${reaction.count}</span>`;
+        reactionEl.innerHTML = `<span>${reaction.emoji}</span><span class="font-bold">${reaction.count}</span>`;
         container.appendChild(reactionEl);
       } else {
         reactionEl.querySelector('span:last-child').innerText = reaction.count;
@@ -444,39 +466,51 @@
     }
   }
 
+  // Handle Viewport Height for Mobile
+  function setVH() {
+    let vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  }
+  window.addEventListener('resize', setVH);
+  setVH();
+
   function appendMessage(m) {
     if (document.getElementById(`msg-${m.id}`)) return;
 
     const div = document.createElement('div');
     div.id = `msg-${m.id}`;
     div.className = `flex flex-col ${m.is_me ? 'items-end' : 'items-start'}`;
-    div.onclick = () => setReply(m.id, m.sender_nickname, m.text.substring(0, 30));
     
     let parentHtml = '';
     if (m.parent) {
       parentHtml = `
-        <div class="mb-2 p-2 bg-black/10 rounded-lg text-[10px] border-l-2 border-white/50">
-          <span class="font-black uppercase block">${m.parent.sender_nickname}</span>
-          <span class="opacity-80">${m.parent.text}</span>
+        <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden">
+          <span class="font-black uppercase block text-[8px] opacity-70">${m.parent.sender_nickname}</span>
+          <span class="opacity-80 truncate block">${m.parent.text}</span>
         </div>
       `;
     }
+
+    const reactionBtn = !m.is_me ? `
+      <button class="reaction-btn-desktop opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block order-2" onclick="showReactionPicker('${m.id}')">😊</button>
+      <button class="reaction-btn-mobile hidden items-center justify-center w-8 h-8 bg-gray-100/50 rounded-full text-xs order-2" onclick="showReactionPicker('${m.id}')">😊</button>
+    ` : '';
 
     div.innerHTML = `
       <div class="nickname-tag ${m.is_me ? 'text-pink-500' : 'text-gray-400'}">
         ${m.sender_nickname}
       </div>
-      <div class="relative group max-w-full">
-        <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me' : 'message-other'}">
+      <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
+        <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me order-1' : 'message-other order-1'}" 
+             onclick="setReply('${m.id}', '${m.sender_nickname}', '${m.text.substring(0, 30)}')"
+             oncontextmenu="event.preventDefault(); showReactionPicker('${m.id}')">
           ${parentHtml}
           ${m.image_url ? `<img src="${m.image_url}" class="rounded-lg mb-2 max-w-full" />` : ''}
           <p class="text-sm leading-relaxed whitespace-pre-wrap">${m.text}</p>
           <p class="text-[9px] mt-1 opacity-60 text-right">${m.created_at}</p>
+          <div id="reactions-${m.id}" class="flex flex-wrap gap-1 mt-1.5"></div>
         </div>
-        <div id="reactions-${m.id}" class="flex flex-wrap gap-1 mt-1"></div>
-        <button class="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-full shadow-md border border-gray-100 text-sm transition-all hidden sm:block" onclick="event.stopPropagation(); showReactionPicker('${m.id}')">
-          😊
-        </button>
+        ${reactionBtn}
       </div>
     `;
     chatMessages.appendChild(div);
