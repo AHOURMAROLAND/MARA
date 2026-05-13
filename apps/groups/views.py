@@ -4,6 +4,9 @@ from django.utils.text import slugify
 from django.utils import timezone
 from django.contrib import messages
 from apps.users.utils import get_owner_from_session, create_session, get_client_ip, get_device_name
+from apps.users.image_utils import optimize_message_image
+from django.core.files.base import ContentFile
+import bleach
 from .models import Group, GroupMessage, GroupParticipant
 from .constants import BIZARRE_NAMES
 from datetime import timedelta
@@ -113,6 +116,10 @@ def group_chat(request, link_id):
         'active_count': active_count,
     })
 
+from apps.users.image_utils import optimize_message_image
+from django.core.files.base import ContentFile
+import bleach
+
 def send_group_message(request, link_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -134,9 +141,22 @@ def send_group_message(request, link_id):
     image = request.FILES.get('image')
     parent_id = request.POST.get('parent_id')
     
+    # Nettoyage du texte (XSS protection)
+    text = bleach.clean(text, tags=[], strip=True) if text else ""
+    
     if not text and not image:
         return JsonResponse({'error': 'Empty message'}, status=400)
-        
+
+    # Optimisation de l'image
+    if image:
+        try:
+            optimized = optimize_message_image(image)
+            image_filename = f"group_messages/msg_{session_token[:8]}.jpg"
+            image = ContentFile(optimized.read(), name=image_filename)
+        except Exception as e:
+            print(f"[MARA] Error optimizing group image: {e}")
+            # On continue avec l'image originale si l'optimisation échoue
+            
     parent_msg = None
     if parent_id:
         try:
@@ -169,9 +189,10 @@ def send_group_message(request, link_id):
             'created_at': msg.created_at.strftime("%H:%M"),
         }
         if msg.parent:
+            parent_text = msg.parent.text or "📸 Image"
             msg_data['parent'] = {
                 'id': str(msg.parent.id),
-                'text': msg.parent.text[:50] + '...' if len(msg.parent.text) > 50 else msg.parent.text,
+                'text': parent_text[:50] + '...' if len(parent_text) > 50 else parent_text,
                 'sender_nickname': msg.parent.sender_nickname
             }
         if msg.image:

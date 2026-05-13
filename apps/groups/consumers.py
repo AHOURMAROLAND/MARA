@@ -234,13 +234,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
             
             if msg.parent:
+                parent_text = msg.parent.text or "📸 Image"
                 result['parent'] = {
                     'id': str(msg.parent.id),
-                    'text': msg.parent.text[:50] + '...' if len(msg.parent.text) > 50 else msg.parent.text,
+                    'text': parent_text[:50] + '...' if len(parent_text) > 50 else parent_text,
                     'sender_nickname': msg.parent.sender_nickname
                 }
             
             return result
         except Exception as e:
-            print(f"Error saving websocket message: {e}")
+            print(f"[MARA] Error saving websocket message: {e}")
+            import traceback
+            traceback.print_exc()
             return None

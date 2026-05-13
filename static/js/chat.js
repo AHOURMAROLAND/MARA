@@ -32,9 +32,12 @@ class MaraChat {
             imagePreview: document.getElementById('image-preview'),
             activeCount: document.getElementById('active-count'),
             currentNickname: document.getElementById('current-nickname'),
-            reactionPicker: document.getElementById('reaction-picker')
+            reactionPicker: document.getElementById('reaction-picker'),
+            contextMenu: document.getElementById('message-context-menu'),
+            menuDeleteOption: document.getElementById('menu-delete-option')
         };
 
+        this.activeMessageData = null;
         this.init();
     }
 
@@ -296,6 +299,52 @@ class MaraChat {
         }
     }
 
+    // --- Context Menu ---
+
+    showContextMenu(messageId, nickname, text, isMe) {
+        this.activeMessageData = { id: messageId, nickname: nickname, text: text, isMe: isMe };
+        
+        if (isMe) {
+            this.elements.menuDeleteOption.classList.remove('hidden');
+        } else {
+            this.elements.menuDeleteOption.classList.add('hidden');
+        }
+        
+        this.elements.contextMenu.classList.remove('hidden');
+        // Vibrate if possible
+        if (window.navigator.vibrate) window.navigator.vibrate(40);
+    }
+
+    hideContextMenu() {
+        this.elements.contextMenu.classList.add('hidden');
+    }
+
+    handleMenuAction(action) {
+        if (!this.activeMessageData) return;
+        
+        const { id, nickname, text } = this.activeMessageData;
+        this.hideContextMenu();
+
+        switch(action) {
+            case 'reply':
+                this.setReply(id, nickname, text);
+                break;
+            case 'react':
+                this.showReactionPicker(id);
+                break;
+            case 'copy':
+                if (text && text !== "📸 Image") {
+                    navigator.clipboard.writeText(text).then(() => {
+                        // Optional: show toast
+                    });
+                }
+                break;
+            case 'delete':
+                this.deleteMessage(id);
+                break;
+        }
+    }
+
     // --- Reactions ---
 
     showReactionPicker(messageId) {
@@ -401,49 +450,20 @@ class MaraChat {
         div.id = `msg-${m.id}`;
         div.className = `flex flex-col ${m.is_me ? 'items-end' : 'items-start'}`;
         
+        const messageText = m.text || "";
+        const safeText = messageText.replace(/'/g, "\\'");
+        const displayNickname = m.sender_nickname || "Anonyme";
+
         let parentHtml = '';
         if (m.parent) {
+            const parentText = m.parent.text || "📸 Image";
             parentHtml = `
                 <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden">
                     <span class="font-black uppercase block text-[8px] opacity-70">${m.parent.sender_nickname}</span>
-                    <span class="opacity-80 truncate block">${m.parent.text}</span>
+                    <span class="opacity-80 truncate block">${parentText}</span>
                 </div>
             `;
         }
-
-        const deleteBtn = m.is_me ? `
-            <button onclick="maraChat.deleteMessage('${m.id}')" class="option-item delete delete-trigger" data-created="${new Date().toISOString()}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Supprimer
-            </button>
-        ` : '';
-
-        const optionsMenu = `
-            <div class="relative order-2">
-                <button onclick="maraChat.toggleOptionsMenu('${m.id}')" class="message-options-btn p-1.5 text-gray-400 hover:text-gray-600 transition-all rounded-full hover:bg-gray-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                </button>
-                <div id="options-${m.id}" class="options-dropdown">
-                    <button onclick="maraChat.setReply('${m.id}', '${m.sender_nickname}', '${m.text ? m.text.substring(0, 30).replace(/'/g, "\\'") : 'Photo'}')" class="option-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                        </svg>
-                        Répondre
-                    </button>
-                    <button onclick="maraChat.showReactionPicker('${m.id}')" class="option-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Réagir
-                    </button>
-                    ${deleteBtn}
-                </div>
-            </div>
-        `;
 
         const downloadBtn = m.image_url ? `
             <div class="relative group/img mb-2">
@@ -458,18 +478,17 @@ class MaraChat {
 
         div.innerHTML = `
             <div class="nickname-tag ${m.is_me ? 'text-pink-500' : 'text-gray-400'}">
-                ${m.sender_nickname}
+                ${displayNickname}
             </div>
             <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
-                ${optionsMenu}
-                <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me order-1' : 'message-other order-1'}" 
-                     onclick="maraChat.setReply('${m.id}', '${m.sender_nickname}', '${m.text ? m.text.substring(0, 30).replace(/'/g, "\\'") : 'Photo'}')"
-                     oncontextmenu="event.preventDefault(); maraChat.showReactionPicker('${m.id}')"
-                     ontouchstart="maraChat.handleTouchStart('${m.id}')"
+                <div class="message-bubble p-3 rounded-2xl shadow-sm ${m.is_me ? 'message-me' : 'message-other'}" 
+                     onclick="maraChat.showContextMenu('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me})"
+                     oncontextmenu="event.preventDefault(); maraChat.showContextMenu('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me})"
+                     ontouchstart="maraChat.handleTouchStart('${m.id}', '${displayNickname}', '${safeText || '📸 Image'}', ${m.is_me})"
                      ontouchend="maraChat.handleTouchEnd()">
                     ${parentHtml}
                     ${downloadBtn}
-                    ${m.text ? `<p class="text-[0.95rem] leading-relaxed whitespace-pre-wrap">${m.text}</p>` : ''}
+                    ${messageText ? `<p class="text-[0.95rem] leading-relaxed whitespace-pre-wrap">${messageText}</p>` : ''}
                     <div class="flex items-center justify-end gap-2 mt-1">
                         <p class="text-[10px] opacity-60">${m.created_at}</p>
                     </div>
@@ -480,10 +499,9 @@ class MaraChat {
         this.elements.chatMessages.appendChild(div);
     }
 
-    handleTouchStart(messageId) {
+    handleTouchStart(messageId, nickname, text, isMe) {
         this.longPressTimer = setTimeout(() => {
-            this.showReactionPicker(messageId);
-            if (window.navigator.vibrate) window.navigator.vibrate(50);
+            this.showContextMenu(messageId, nickname, text, isMe);
         }, 500);
     }
 

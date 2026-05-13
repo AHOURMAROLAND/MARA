@@ -103,7 +103,7 @@ def send_message(request, link_id):
             recipient=recipient,
             text=text if text else None,
             image=image if image else None,
-            image_caption=caption if (image and caption) else None,
+            image_caption=caption if (image and caption and caption.lower() != 'none') else None,
             sender_ip=get_client_ip(request),
             sender_device=get_device_name(request),
             sender_session_token=request.session.get('ngl_token', ''),
@@ -210,28 +210,44 @@ def check_new_messages(request):
     if not owner:
         return JsonResponse({'success': False})
         
-    last_id = int(request.GET.get('last_id', 0))
+    last_id = request.GET.get('last_id', '0')
     
-    if last_id == 0:
-        last_msg = Message.objects.filter(recipient=owner).order_by('id').last()
+    if last_id == '0' or not last_id:
+        last_msg = Message.objects.filter(recipient=owner).order_by('created_at').last()
         return JsonResponse({
             'success': True, 
             'has_new': False, 
-            'last_id': last_msg.id if last_msg else 0
+            'last_id': str(last_msg.id) if last_msg else '0'
         })
         
-    new_msgs = Message.objects.filter(recipient=owner, id__gt=last_id).order_by('id')
+    try:
+        # Get the reference message to find newer ones
+        ref_msg = Message.objects.filter(recipient=owner, id=last_id).first()
+        if ref_msg:
+            new_msgs = Message.objects.filter(recipient=owner, created_at__gt=ref_msg.created_at).order_by('created_at')
+        else:
+            # If ref message not found (maybe deleted), just return latest
+            last_msg = Message.objects.filter(recipient=owner).order_by('created_at').last()
+            return JsonResponse({
+                'success': True, 
+                'has_new': False, 
+                'last_id': str(last_msg.id) if last_msg else '0'
+            })
+    except Exception as e:
+        logger.error(f"[MARA] Error in check_new_messages: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
     if new_msgs.exists():
         msg = new_msgs.last()
         return JsonResponse({
             'success': True,
             'has_new': True,
-            'last_id': msg.id,
-            'text': msg.text[:40] + '...' if len(msg.text) > 40 else msg.text,
+            'last_id': str(msg.id),
+            'text': msg.text[:40] + '...' if (msg.text and len(msg.text) > 40) else (msg.text or "📸 Image"),
             'link_id': owner.link_id,
         })
         
-    return JsonResponse({'success': True, 'has_new': False})
+    return JsonResponse({'success': True, 'has_new': False, 'last_id': last_id})
 
 
 def mark_as_read(request, msg_id):

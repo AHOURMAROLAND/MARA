@@ -63,46 +63,16 @@
         </div>
         
         <div class="relative group max-w-[90%] sm:max-w-[85%] flex items-center gap-2">
-          <!-- Options Menu (Three Dots) -->
-          <div class="relative order-2">
-            <button onclick="maraChat.toggleOptionsMenu('{{ m.id }}')" class="message-options-btn p-1.5 text-gray-400 hover:text-gray-600 transition-all rounded-full hover:bg-gray-100" aria-label="Options du message">
-              {% include 'includes/icons/dots.html' with class='h-5 w-5' %}
-            </button>
-            
-            <div id="options-{{ m.id }}" class="options-dropdown">
-              <button onclick="maraChat.setReply('{{ m.id }}', '{{ m.sender_nickname }}', '{{ m.text|truncatechars:30|escapejs }}')" class="option-item">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                </svg>
-                Répondre
-              </button>
-              <button onclick="maraChat.showReactionPicker('{{ m.id }}')" class="option-item">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Réagir
-              </button>
-              {% if m.sender_session_token == request.session.ngl_token %}
-              <button onclick="maraChat.deleteMessage('{{ m.id }}')" class="option-item delete delete-trigger" data-created="{{ m.created_at.isoformat }}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Supprimer
-              </button>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="message-bubble p-3 rounded-2xl shadow-sm {% if m.sender_session_token == request.session.ngl_token %}message-me order-1{% else %}message-other order-1{% endif %}" 
-               onclick="maraChat.setReply('{{ m.id }}', '{{ m.sender_nickname }}', '{{ m.text|truncatechars:30|escapejs }}')"
-               oncontextmenu="event.preventDefault(); maraChat.showReactionPicker('{{ m.id }}')"
-               ontouchstart="maraChat.handleTouchStart('{{ m.id }}')"
+          <div class="message-bubble p-3 rounded-2xl shadow-sm {% if m.sender_session_token == request.session.ngl_token %}message-me{% else %}message-other{% endif %}" 
+               onclick="maraChat.showContextMenu('{{ m.id }}', '{{ m.sender_nickname|escapejs }}', '{{ m.text|default:'📸 Image'|escapejs }}', {% if m.sender_session_token == request.session.ngl_token %}true{% else %}false{% endif %})"
+               oncontextmenu="event.preventDefault(); maraChat.showContextMenu('{{ m.id }}', '{{ m.sender_nickname|escapejs }}', '{{ m.text|default:'📸 Image'|escapejs }}', {% if m.sender_session_token == request.session.ngl_token %}true{% else %}false{% endif %})"
+               ontouchstart="maraChat.handleTouchStart('{{ m.id }}', '{{ m.sender_nickname|escapejs }}', '{{ m.text|default:'📸 Image'|escapejs }}', {% if m.sender_session_token == request.session.ngl_token %}true{% else %}false{% endif %})"
                ontouchend="maraChat.handleTouchEnd()">
             
             {% if m.parent %}
               <div class="mb-2 p-2 bg-black/5 rounded-lg text-[10px] border-l-2 border-pink-500/50 overflow-hidden">
                 <span class="font-black uppercase block text-[8px] opacity-70">{{ m.parent.sender_nickname }}</span>
-                <span class="opacity-80 truncate block">{{ m.parent.text }}</span>
+                <span class="opacity-80 truncate block">{{ m.parent.text|default:"📸 Image" }}</span>
               </div>
             {% endif %}
             
@@ -221,6 +191,53 @@
     <button onclick="maraChat.sendReactionFromPicker('😮')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">😮</button>
     <button onclick="maraChat.sendReactionFromPicker('😢')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">😢</button>
     <button onclick="maraChat.sendReactionFromPicker('👍')" class="text-3xl sm:text-2xl hover:scale-125 transition p-2">👍</button>
+  </div>
+</div>
+
+<!-- Message Context Menu Modal -->
+<div id="message-context-menu" class="hidden fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px]" onclick="maraChat.hideContextMenu()">
+  <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:w-64 overflow-hidden animate-slide-up sm:animate-bounce-in" onclick="event.stopPropagation()">
+    <div class="p-2 space-y-1">
+      <button onclick="maraChat.handleMenuAction('reply')" class="w-full flex items-center gap-3 px-4 py-3.5 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl">
+        <div class="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-500">
+          {% include 'includes/icons/back.html' with class='w-4 h-4' %}
+        </div>
+        <span class="font-bold text-sm">Répondre</span>
+      </button>
+      
+      <button onclick="maraChat.handleMenuAction('react')" class="w-full flex items-center gap-3 px-4 py-3.5 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl">
+        <div class="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <span class="font-bold text-sm">Réagir</span>
+      </button>
+
+      <button onclick="maraChat.handleMenuAction('copy')" class="w-full flex items-center gap-3 px-4 py-3.5 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl">
+        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+          </svg>
+        </div>
+        <span class="font-bold text-sm">Copier le texte</span>
+      </button>
+
+      <div id="menu-delete-option" class="hidden">
+        <button onclick="maraChat.handleMenuAction('delete')" class="w-full flex items-center gap-3 px-4 py-3.5 text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors rounded-xl">
+          <div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <span class="font-bold text-sm">Supprimer</span>
+        </button>
+      </div>
+    </div>
+    
+    <button onclick="maraChat.hideContextMenu()" class="w-full py-4 text-gray-400 font-bold text-sm border-t border-gray-100 sm:hidden">
+      Annuler
+    </button>
   </div>
 </div>
 
