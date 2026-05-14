@@ -11,7 +11,8 @@
     border-radius: 24px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.15);
     overflow: hidden;
-    max-width: 340px;
+    max-width: 380px;
+    width: 95%;
     margin: 0 auto;
   }
   
@@ -136,8 +137,8 @@
       <!-- Message Body -->
       <div class="ngl-body">
         {% if msg.image %}
-        <div class="mb-4 rounded-xl overflow-hidden">
-          <img src="{{ msg.image.url }}" alt="Image" class="w-full object-cover" style="max-height: 200px;"/>
+        <div class="mb-4 rounded-xl overflow-hidden bg-gray-50">
+          <img src="{{ msg.image.url }}" alt="Image" class="w-full h-auto block" style="max-height: 550px;"/>
         </div>
         {% if msg.image_caption and msg.image_caption.lower != 'none' %}
           <p class="text-gray-600 text-sm font-semibold mb-2">{{ msg.image_caption }}</p>
@@ -155,7 +156,7 @@
     </div>
     
     <!-- Action Buttons -->
-    <div class="w-full max-w-[340px] mt-5 space-y-3">
+    <div class="w-full max-w-[380px] mt-5 space-y-3 px-2">
       
       <!-- Reply button -->
       <button class="ngl-btn ngl-btn-black" onclick="replyToMessage()">
