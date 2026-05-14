@@ -58,7 +58,7 @@
   <!-- Nickname Banner (Small) -->
   <div class="bg-theme-text text-theme-bg text-[10px] py-1.5 px-4 flex justify-between items-center font-bold uppercase tracking-widest shrink-0 opacity-90">
     <div>Ton pseudo : <span id="current-nickname" class="text-mara-pink">{{ participant.nickname }}</span></div>
-    <div class="opacity-30">MARA v1.5</div>
+    <div class="opacity-30">MARA v2.0</div>
   </div>
 
   <!-- Messages List -->
@@ -85,8 +85,8 @@
             {% endif %}
             
             {% if m.image %}
-              <div class="relative group/img mb-2">
-                <img src="{{ m.image.url }}" class="rounded-lg max-w-full cursor-pointer" onclick="event.stopPropagation(); window.location.href='{% url 'proxy_download_image' m.id %}'" />
+              <div class="relative group/img mb-2 aspect-square w-64 max-w-full overflow-hidden rounded-lg">
+                <img src="{{ m.image.url }}" class="w-full h-full object-cover cursor-pointer" onclick="event.stopPropagation(); window.location.href='{% url 'proxy_download_image' m.id %}'" />
                 <a href="{% url 'proxy_download_image' m.id %}" class="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition shadow-lg">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

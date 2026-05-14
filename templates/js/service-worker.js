@@ -74,38 +74,31 @@ self.addEventListener('push', event => {
   console.log('[MARA] Push received:', event);
 
   let data = {};
-  try {
-    data = event.data.json();
-  } catch (e) {
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      console.error('[MARA] Push data is not JSON:', event.data.text());
+      data = {
+        title: 'Nouveau message sur MARA 💌',
+        body: event.data.text() || 'Tu as reçu un message anonyme !',
+      };
+    }
+  } else {
     data = {
-      title: 'Nouveau message sur MARA',
-      body: 'Tu as recu un message anonyme !',
-      icon: '/static/img/mara-192x192.png',
-      badge: '/static/img/favicon-96x96.png',
-      tag: 'new-message',
-      url: '/'
+      title: 'Nouveau message sur MARA 💌',
+      body: 'Tu as reçu un message anonyme !',
     };
   }
 
   const options = {
-    body: data.body || 'Tu as recu un message anonyme !',
+    body: data.body || 'Tu as reçu un message anonyme !',
     icon: data.icon || '/static/img/mara-192x192.png',
     badge: data.badge || '/static/img/mara-96x96.png',
     image: data.image || null,
     tag: data.tag || 'new-message',
     requireInteraction: true,
-    actions: [
-      {
-        action: 'open',
-        title: 'Voir le message',
-        icon: '/static/img/mara-96x96.png'
-      },
-      {
-        action: 'close',
-        title: 'Fermer',
-        icon: '/static/img/mara-96x96.png'
-      }
-    ],
+    vibrate: [100, 50, 100],
     data: {
       url: data.url || '/',
       messageId: data.messageId || null
@@ -114,7 +107,7 @@ self.addEventListener('push', event => {
 
   event.waitUntil(
     self.registration.showNotification(
-      data.title || 'Nouveau message sur MARA',
+      data.title || 'Nouveau message sur MARA 💌',
       options
     )
   );

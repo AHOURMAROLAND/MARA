@@ -39,6 +39,9 @@ class UserProfile(models.Model):
     # Token secret pour reconnexion sans cookie (localStorage)
     reconnect_token = models.UUIDField(default=uuid.uuid4, unique=True)
 
+    # Notifications alternatives
+    telegram_chat_id = models.CharField(max_length=100, null=True, blank=True, help_text="ID de chat Telegram pour les notifications")
+
     # Deprecated - kept for backward compatibility, use content_mode instead
     accept_images = models.BooleanField(default=True)
     accept_messages = models.BooleanField(default=True)

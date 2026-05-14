@@ -1,7 +1,7 @@
 {
-  "name": "MARA — Message At Random Anonymous",
-  "short_name": "MARA",
-  "description": "Envoie et recois des messages anonymes. Partage ton lien et recois des messages de tes amis en toute confidentialite.",
+  "name": "MARA v2.0 — Message At Random Anonymous",
+  "short_name": "MARA 2.0",
+  "description": "MARA v2.0 - Envoie et recois des messages anonymes avec notifications Telegram et interface amelioree.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

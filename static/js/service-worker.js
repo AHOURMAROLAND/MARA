@@ -1,17 +1,13 @@
-const CACHE_NAME = 'mara-v3';
-const urlsToCache = [
+const CACHE_NAME = 'mara-cache-v2.0';
+const OFFLINE_URL = '/offline/';
+
+const ASSETS_TO_CACHE = [
   '/',
-  '/static/manifest.json',
-  '/static/img/favicon.ico',
-  '/static/img/favicon-16x16.png',
-  '/static/img/favicon-32x32.png',
-  '/static/img/favicon-48x48.png',
-  '/static/img/mara-96x96.png',
+  '/static/css/style.css',
+  '/static/js/app.js',
   '/static/img/mara-192x192.png',
   '/static/img/mara-512x512.png',
-  '/static/img/mara-maskable-192x192.png',
-  '/static/img/mara-maskable-512x512.png',
-  '/static/img/apple-touch-icon.png',
+  OFFLINE_URL
 ];
 
 // Installation du service worker
@@ -74,38 +70,31 @@ self.addEventListener('push', event => {
   console.log('[MARA] Push received:', event);
 
   let data = {};
-  try {
-    data = event.data.json();
-  } catch (e) {
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      console.error('[MARA] Push data is not JSON:', event.data.text());
+      data = {
+        title: 'Nouveau message sur MARA 💌',
+        body: event.data.text() || 'Tu as reçu un message anonyme !',
+      };
+    }
+  } else {
     data = {
-      title: 'Nouveau message sur MARA',
-      body: 'Tu as recu un message anonyme !',
-      icon: '/static/img/mara-192x192.png',
-      badge: '/static/img/favicon-96x96.png',
-      tag: 'new-message',
-      url: '/'
+      title: 'Nouveau message sur MARA 💌',
+      body: 'Tu as reçu un message anonyme !',
     };
   }
 
   const options = {
-    body: data.body || 'Tu as recu un message anonyme !',
+    body: data.body || 'Tu as reçu un message anonyme !',
     icon: data.icon || '/static/img/mara-192x192.png',
     badge: data.badge || '/static/img/mara-96x96.png',
     image: data.image || null,
     tag: data.tag || 'new-message',
     requireInteraction: true,
-    actions: [
-      {
-        action: 'open',
-        title: 'Voir le message',
-        icon: '/static/img/mara-96x96.png'
-      },
-      {
-        action: 'close',
-        title: 'Fermer',
-        icon: '/static/img/mara-96x96.png'
-      }
-    ],
+    vibrate: [100, 50, 100],
     data: {
       url: data.url || '/',
       messageId: data.messageId || null
@@ -114,7 +103,7 @@ self.addEventListener('push', event => {
 
   event.waitUntil(
     self.registration.showNotification(
-      data.title || 'Nouveau message sur MARA',
+      data.title || 'Nouveau message sur MARA 💌',
       options
     )
   );

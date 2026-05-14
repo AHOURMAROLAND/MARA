@@ -85,41 +85,84 @@
       </div>
     </div>
 
-    <!-- Push Notifications -->
-    <div id="push-section" class="bg-theme-surface rounded-2xl shadow-theme p-5 border border-theme-border">
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-3">
-          <div id="push-icon-bg" class="w-10 h-10 bg-theme-bg rounded-lg flex items-center justify-center">
-            {% include 'includes/icons/bell.html' with class='w-6 h-6 text-theme-muted' id='push-icon' %}
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+
+      <!-- Push Notifications -->
+      <div id="push-section" class="bg-theme-surface rounded-2xl shadow-theme p-5 border border-theme-border">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div id="push-icon-bg" class="w-10 h-10 bg-theme-bg rounded-lg flex items-center justify-center">
+              {% include 'includes/icons/bell.html' with class='w-6 h-6 text-theme-muted' id='push-icon' %}
+            </div>
+            <div>
+              <h3 class="font-bold text-theme-text">Notifications push</h3>
+              <p id="push-status-text" class="text-xs text-theme-muted">Verifications...</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="enable-push-btn" class="hidden bg-mara-gradient text-white font-bold px-4 py-2 rounded-lg text-sm shadow">
+              Activer
+            </button>
+            <button type="button" id="disable-push-btn" class="hidden bg-theme-bg text-theme-text font-bold px-4 py-2 rounded-lg text-sm hover:opacity-80 transition">
+              Desactiver
+            </button>
+            <span id="push-status-blocked" class="hidden text-red-500 text-sm font-bold flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+              </svg>
+              Bloque
+            </span>
+            <span id="push-status-not-supported" class="hidden text-theme-muted text-xs">
+              Non supporte
+            </span>
+          </div>
+        </div>
+        <!-- Error message container -->
+        <div id="push-error-msg" class="hidden mt-3 p-3 bg-red-50 text-red-600 text-sm rounded-lg"></div>
+        <!-- Success message container -->
+        <div id="push-success-msg" class="hidden mt-3 p-3 bg-green-50 text-green-600 text-sm rounded-lg"></div>
+      </div>
+
+      <!-- Telegram Notifications (Alternative) -->
+      <div class="bg-theme-surface rounded-2xl shadow-theme p-5 border border-theme-border">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
           </div>
           <div>
-            <h3 class="font-bold text-theme-text">Notifications push</h3>
-            <p id="push-status-text" class="text-xs text-theme-muted">Verifications...</p>
+            <h3 class="font-bold text-theme-text">Telegram (Plus fiable)</h3>
+            <p class="text-xs text-theme-muted">Reçois les alertes directement sur Telegram</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button id="enable-push-btn" class="hidden bg-mara-gradient text-white font-bold px-4 py-2 rounded-lg text-sm shadow">
-            Activer
-          </button>
-          <button id="disable-push-btn" class="hidden bg-theme-bg text-theme-text font-bold px-4 py-2 rounded-lg text-sm hover:opacity-80 transition">
-            Desactiver
-          </button>
-          <span id="push-status-blocked" class="hidden text-red-500 text-sm font-bold flex items-center gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-            </svg>
-            Bloque
-          </span>
-          <span id="push-status-not-supported" class="hidden text-theme-muted text-xs">
-            Non supporte
-          </span>
+        
+        <div class="space-y-3">
+          <p class="text-xs text-theme-muted leading-relaxed">
+            Si les notifications navigateur ne marchent pas bien sur ton mobile, utilise notre bot Telegram.
+          </p>
+          
+          <div class="bg-theme-bg p-3 rounded-xl border border-theme-border">
+            <p class="text-[10px] font-bold text-theme-text uppercase mb-1">Comment faire :</p>
+            <ol class="text-[10px] text-theme-muted space-y-1 list-decimal list-inside">
+              <li>Contacte <a href="https://t.me/userinfobot" target="_blank" class="text-blue-500 font-bold">@userinfobot</a> sur Telegram pour obtenir ton <b>Id</b>.</li>
+              <li>Copie cet ID (uniquement les chiffres) ci-dessous.</li>
+            </ol>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold text-theme-text opacity-70 mb-1 uppercase">Ton Chat ID Telegram</label>
+            <input
+              type="text"
+              name="telegram_chat_id"
+              value="{{ user.telegram_chat_id|default:'' }}"
+              placeholder="Ex: 123456789"
+              class="w-full px-4 py-2 bg-theme-bg border border-theme-border text-theme-text rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500/50 transition"
+            />
+          </div>
         </div>
       </div>
-      <!-- Error message container -->
-      <div id="push-error-msg" class="hidden mt-3 p-3 bg-red-50 text-red-600 text-sm rounded-lg"></div>
-      <!-- Success message container -->
-      <div id="push-success-msg" class="hidden mt-3 p-3 bg-green-50 text-green-600 text-sm rounded-lg"></div>
-    </div>
 
     <!-- Theme Selection -->
     <div class="bg-theme-surface rounded-2xl shadow-theme p-5 border border-theme-border">
@@ -168,9 +211,6 @@
         else buttons[1].classList.add('border-mara-pink', 'ring-2', 'ring-mara-pink/20');
       });
     </script>
-
-    <form method="POST" enctype="multipart/form-data" class="space-y-4">
-      {% csrf_token %}
 
       <!-- Content Mode - Single Choice -->
       <div class="bg-theme-surface rounded-2xl shadow-theme p-5 border border-theme-border">
@@ -650,6 +690,11 @@ document.querySelectorAll('input[name="content_mode"]').forEach(radio => {
 // Initialize
 enablePushBtn.addEventListener('click', subscribeToPush);
 disablePushBtn.addEventListener('click', unsubscribeFromPush);
+
+// Fix: Make sure buttons work correctly even if defined as type="button"
+enablePushBtn.onclick = (e) => { e.preventDefault(); subscribeToPush(); };
+disablePushBtn.onclick = (e) => { e.preventDefault(); unsubscribeFromPush(); };
+
 checkPushStatus();
 
 // ==================== PHOTO MANAGEMENT ====================

@@ -23,11 +23,13 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'channels',
-    'channels_postgres',
     'apps.users.apps.UsersConfig',
     'apps.inbox.apps.InboxConfig',
     'apps.groups.apps.GroupsConfig',
 ]
+
+if not DEBUG:
+    INSTALLED_APPS.append('channels_postgres')
 
 # Channels configuration
 ASGI_APPLICATION = 'config.asgi.application'
@@ -191,3 +193,6 @@ VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
 VAPID_CLAIMS = {
     'sub': config('VAPID_CLAIMS_SUB', default='mailto:admin@example.com'),
 } if VAPID_PRIVATE_KEY else None
+
+# Telegram Notifications
+TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')

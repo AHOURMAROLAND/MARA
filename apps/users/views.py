@@ -152,6 +152,10 @@ def profile_settings(request, link_id):
             owner.accept_messages = content_mode in ('text', 'both')
             owner.accept_images = content_mode in ('images', 'both')
 
+        # Telegram Chat ID
+        telegram_chat_id = request.POST.get('telegram_chat_id', '').strip()
+        owner.telegram_chat_id = telegram_chat_id if telegram_chat_id else None
+
         old_pin = request.POST.get('old_pin', '').strip()
         new_pin = request.POST.get('new_pin', '').strip()
         confirm_pin = request.POST.get('confirm_pin', '').strip()
@@ -359,6 +363,35 @@ def send_push_notification(user, title, body, url=None, data=None):
         PushSubscription.objects.filter(endpoint__in=failed_endpoints).update(is_active=False)
 
     return sent_count > 0
+
+
+def send_telegram_notification(user, message_text):
+    """Send a notification via Telegram if the user has a chat_id configured"""
+    if not user.telegram_chat_id or not settings.TELEGRAM_BOT_TOKEN:
+        return False
+
+    import requests
+    token = settings.TELEGRAM_BOT_TOKEN
+    chat_id = user.telegram_chat_id
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    
+    payload = {
+        'chat_id': chat_id,
+        'text': message_text,
+        'parse_mode': 'HTML'
+    }
+
+    try:
+        response = requests.post(url, data=payload, timeout=10)
+        if response.status_code == 200:
+            logger.info(f"[MARA] Telegram notification sent to @{user.pseudo}")
+            return True
+        else:
+            logger.error(f"[MARA] Telegram error: {response.text}")
+            return False
+    except Exception as e:
+        logger.error(f"[MARA] Telegram exception: {e}")
+        return False
 
 
 def get_vapid_public_key(request):

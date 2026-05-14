@@ -111,7 +111,7 @@ def send_message(request, link_id):
 
         # Trigger Web Push Notification
         try:
-            from apps.users.views import send_push_notification
+            from apps.users.views import send_push_notification, send_telegram_notification
             push_title = "Nouveau message sur MARA 💌"
             push_body = "Tu as reçu un nouveau message anonyme !"
             if text:
@@ -122,7 +122,14 @@ def send_message(request, link_id):
                 push_body = "Tu as reçu une nouvelle image anonyme ! 📸"
             
             inbox_url = request.build_absolute_uri(f'/m/inbox/{recipient.link_id}/{msg.id}/')
+            
+            # Send Web Push
             send_push_notification(recipient, push_title, push_body, url=inbox_url)
+            
+            # Send Telegram
+            tg_message = f"<b>{push_title}</b>\n\n{push_body}\n\n<a href='{inbox_url}'>Voir le message</a>"
+            send_telegram_notification(recipient, tg_message)
+            
         except Exception as e:
             logger.error(f"[MARA] Error triggering push: {e}")
 

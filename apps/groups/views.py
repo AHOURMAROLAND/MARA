@@ -237,19 +237,21 @@ def send_group_message(request, link_id):
     # Trigger Push Notification to Group Creator
     if group.creator:
         try:
-            from apps.users.views import send_push_notification
+            from apps.users.views import send_push_notification, send_telegram_notification
             push_title = f"Nouveau message dans {group.name} 💬"
             push_body = f"{participant.nickname} : {text[:50]}..." if len(text) > 50 else f"{participant.nickname} : {text}"
             
             group_url = request.build_absolute_uri(f'/groups/g/{group.link_id}/')
+            
             # Don't notify the creator if they are the one who sent the message
-            if session_token != request.session.get('ngl_token'): # This logic is a bit flawed since session_token IS request.session.get('ngl_token') here
-                # Better: only notify if the sender is NOT the creator
-                # But wait, the creator is a UserProfile, the sender is a session.
-                # Let's check if the current session belongs to the creator.
-                owner = get_owner_from_session(request)
-                if owner != group.creator:
-                    send_push_notification(group.creator, push_title, push_body, url=group_url)
+            owner = get_owner_from_session(request)
+            if owner != group.creator:
+                # Send Web Push
+                send_push_notification(group.creator, push_title, push_body, url=group_url)
+                
+                # Send Telegram
+                tg_message = f"<b>{push_title}</b>\n\n{push_body}\n\n<a href='{group_url}'>Aller au chat</a>"
+                send_telegram_notification(group.creator, tg_message)
         except Exception as e:
             print(f"[MARA] Error triggering group push: {e}")
     

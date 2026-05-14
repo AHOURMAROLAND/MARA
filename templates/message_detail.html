@@ -30,8 +30,8 @@
       <!-- Message Body -->
       <div class="ngl-body">
         {% if msg.image %}
-        <div class="mb-4 rounded-xl overflow-hidden bg-theme-bg">
-          <img src="{{ msg.image.url }}" alt="Image" class="w-full h-auto block" style="max-height: 550px;"/>
+        <div class="mb-4 rounded-xl overflow-hidden bg-theme-bg aspect-square">
+          <img src="{{ msg.image.url }}" alt="Image" class="w-full h-full object-cover block shadow-inner"/>
         </div>
         {% if msg.image_caption and msg.image_caption.lower != 'none' %}
           <p class="text-theme-muted text-sm font-semibold mb-2">{{ msg.image_caption }}</p>

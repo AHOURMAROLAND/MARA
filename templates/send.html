@@ -22,7 +22,7 @@
   <div class="mb-4 flex flex-col items-center">
     {% if recipient.photo %}
       <img src="{{ recipient.photo.url }}" alt="{{ recipient.pseudo }}"
-           class="w-20 h-20 rounded-full object-cover border-4 border-theme-surface shadow-theme mb-2"/>
+           class="w-20 h-20 rounded-full object-cover border-4 border-theme-surface shadow-theme mb-2 aspect-square"/>
     {% else %}
       <div class="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-extrabold border-4 border-theme-surface shadow-theme mb-2 bg-mara-gradient">
         {{ recipient.pseudo|first|upper }}
