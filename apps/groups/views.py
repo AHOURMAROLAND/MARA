@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
 from django.utils.text import slugify
 from django.utils import timezone
 from django.contrib import messages
@@ -13,6 +13,7 @@ from datetime import timedelta
 import random
 import json
 import uuid
+import requests
 
 def generate_random_nickname(exclude_list=None):
     if exclude_list is None:
@@ -59,6 +60,31 @@ def create_group(request):
         return redirect('group_chat', link_id=link_id)
 
     return redirect('profile_share', link_id=owner.link_id)
+
+def proxy_download_image(request, message_id):
+    """
+    Proxy view to download image from Cloudinary securely and hide the direct URL.
+    """
+    message = get_object_or_404(GroupMessage, id=message_id)
+    if not message.image:
+        return HttpResponse("No image", status=404)
+    
+    try:
+        # Fetch image from Cloudinary
+        response = requests.get(message.image.url, stream=True)
+        if response.status_code == 200:
+            # Create the response with the image content
+            proxy_response = HttpResponse(response.content, content_type=response.headers.get('Content-Type'))
+            # Force download with a filename
+            ext = message.image.name.split('.')[-1]
+            filename = f"MARA_{message.id}.{ext}"
+            proxy_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return proxy_response
+        else:
+            return HttpResponse("Error fetching image", status=response.status_code)
+    except Exception as e:
+        print(f"[MARA-PROXY] Error: {e}")
+        return HttpResponse("Server error", status=500)
 
 def group_chat(request, link_id):
     group = get_object_or_404(Group, link_id=link_id, is_active=True)

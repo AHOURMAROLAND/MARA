@@ -86,8 +86,8 @@
             
             {% if m.image %}
               <div class="relative group/img mb-2">
-                <img src="{{ m.image.url }}" class="rounded-lg max-w-full" />
-                <a href="{{ m.image.url }}" download class="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition shadow-lg">
+                <img src="{{ m.image.url }}" class="rounded-lg max-w-full cursor-pointer" onclick="event.stopPropagation(); window.location.href='{% url 'proxy_download_image' m.id %}'" />
+                <a href="{% url 'proxy_download_image' m.id %}" class="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition shadow-lg">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
@@ -230,6 +230,17 @@
         </div>
         <span class="font-bold text-sm">Copier le texte</span>
       </button>
+
+      <div id="menu-download-option" class="hidden">
+        <button onclick="maraChat.handleMenuAction('download')" class="w-full flex items-center gap-3 px-4 py-3.5 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl">
+          <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </div>
+          <span class="font-bold text-sm">Télécharger l'image</span>
+        </button>
+      </div>
 
       <div id="menu-delete-option" class="hidden">
         <button onclick="maraChat.handleMenuAction('delete')" class="w-full flex items-center gap-3 px-4 py-3.5 text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors rounded-xl">

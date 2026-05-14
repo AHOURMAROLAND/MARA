@@ -369,12 +369,25 @@ class MaraChat {
         }
         
         console.log('[MARA] Opening context menu for:', messageId);
-        this.activeMessageData = { id: messageId, nickname: nickname, text: text, isMe: isMe };
         
+        // Check if this message has an image
+        const msgEl = document.getElementById(`msg-${messageId}`);
+        const hasImage = msgEl ? !!msgEl.querySelector('img') : false;
+        
+        this.activeMessageData = { id: messageId, nickname: nickname, text: text, isMe: isMe, hasImage: hasImage };
+        
+        // Toggle delete option
         if (isMe) {
             this.elements.menuDeleteOption.classList.remove('hidden');
         } else {
             this.elements.menuDeleteOption.classList.add('hidden');
+        }
+
+        // Toggle download option
+        const downloadBtn = document.getElementById('menu-download-option');
+        if (downloadBtn) {
+            if (hasImage) downloadBtn.classList.remove('hidden');
+            else downloadBtn.classList.add('hidden');
         }
         
         this.elements.contextMenu.classList.remove('hidden');
@@ -408,6 +421,9 @@ class MaraChat {
                 break;
             case 'delete':
                 this.deleteMessage(id);
+                break;
+            case 'download':
+                window.location.href = `/groups/download/image/${id}/`;
                 break;
         }
     }
