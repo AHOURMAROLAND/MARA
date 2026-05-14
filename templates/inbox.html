@@ -6,41 +6,41 @@
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-theme-bg">
 
   <!-- Header sticky -->
-  <div class="bg-white px-4 pt-12 pb-0 sticky top-0 z-10 shadow-sm">
+  <div class="bg-theme-surface px-4 pt-12 pb-0 sticky top-0 z-10 shadow-theme border-b border-theme-border">
     <div class="max-w-md mx-auto">
 
       <!-- Ligne du haut -->
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
           {% if user.photo %}
-            <img src="{{ user.photo.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-pink-100"/>
+            <img src="{{ user.photo.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-mara-pink/20"/>
           {% else %}
-            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-extrabold bg-mara">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-extrabold bg-mara-gradient">
               {{ user.pseudo|first|upper }}
             </div>
           {% endif %}
-          <span class="font-extrabold text-base text-gray-800">@{{ user.pseudo }}</span>
+          <span class="font-extrabold text-base text-theme-text">@{{ user.pseudo }}</span>
         </div>
         <div class="flex items-center gap-3">
           {% if unread_count %}
-            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold bg-mara">{{ unread_count }}</span>
+            <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold bg-mara-gradient">{{ unread_count }}</span>
           {% endif %}
-          <a href="{% url 'profile_settings' user.link_id %}" class="text-gray-400" aria-label="Paramètres du profil">
+          <a href="{% url 'profile_settings' user.link_id %}" class="text-theme-muted hover:text-mara-pink transition-colors" aria-label="Paramètres du profil">
             {% include 'includes/icons/settings.html' with class='w-6 h-6' %}
           </a>
         </div>
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-6 border-b border-gray-100">
+      <div class="flex gap-6 border-b border-theme-border">
         <a href="{% url 'profile_share' user.link_id %}" class="tab-inactive text-sm">PARTAGER</a>
         <button onclick="switchTab('messages')" id="tab-messages" class="tab-active text-sm flex items-center gap-1">
           MESSAGES
           {% if unread_count %}
-            <span class="w-2 h-2 rounded-full inline-block bg-mara"></span>
+            <span class="w-2 h-2 rounded-full inline-block bg-mara-pink"></span>
           {% endif %}
         </button>
         <button onclick="switchTab('groups')" id="tab-groups" class="tab-inactive text-sm flex items-center gap-1">
@@ -51,24 +51,24 @@
   </div>
 
   <!-- Messages List -->
-  <div id="messages-section" class="max-w-md mx-auto mt-2 bg-white rounded-2xl overflow-hidden shadow-sm">
+  <div id="messages-section" class="max-w-md mx-auto mt-2 bg-theme-surface rounded-2xl overflow-hidden shadow-theme border border-theme-border">
     {% for msg in messages %}
-    <a href="{% url 'message_detail' user.link_id msg.id %}" class="msg-row">
+    <a href="{% url 'message_detail' user.link_id msg.id %}" class="msg-row border-theme-border hover:bg-theme-bg/50 transition-colors">
 
       <!-- Enveloppe -->
       {% if msg.is_read %}
-        <div class="envelope-read">
-          {% include 'includes/icons/envelope.html' with class='w-5 h-5 text-gray-400' %}
+        <div class="envelope-read bg-theme-bg">
+          {% include 'includes/icons/envelope.html' with class='w-5 h-5 text-theme-muted' %}
         </div>
       {% else %}
-        <div class="envelope-unread">
+        <div class="envelope-unread bg-mara-gradient">
           {% include 'includes/icons/envelope.html' with class='w-5 h-5 text-white' %}
         </div>
       {% endif %}
 
       <!-- Contenu texte -->
       <div class="flex-1 min-w-0">
-        <p class="text-sm text-gray-800 truncate {% if not msg.is_read %}font-bold{% else %}font-semibold{% endif %}">
+        <p class="text-sm text-theme-text truncate {% if not msg.is_read %}font-bold{% else %}font-semibold{% endif %}">
           {% if msg.text %}
             {{ msg.text|truncatechars:50 }}
           {% elif msg.has_image %}
@@ -77,23 +77,23 @@
             Message anonyme
           {% endif %}
         </p>
-        <p class="text-xs text-gray-400 mt-0.5">From a friend · {{ msg.created_at|timesince }}</p>
+        <p class="text-xs text-theme-muted mt-0.5">From a friend · {{ msg.created_at|timesince }}</p>
       </div>
 
       <!-- Chevron + dot non-lu -->
       <div class="flex items-center gap-2 flex-shrink-0">
         {% if not msg.is_read %}
-          <span class="w-2 h-2 rounded-full" style="background:#FF5078"></span>
+          <span class="w-2 h-2 rounded-full bg-mara-pink"></span>
         {% endif %}
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-theme-muted opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
         </svg>
       </div>
     </a>
     {% empty %}
-    <div class="text-center py-16 text-gray-400">
-      <p class="text-5xl mb-4">Boite vide</p>
-      <p class="font-bold text-gray-600">Aucun message pour l'instant</p>
+    <div class="text-center py-16 text-theme-muted">
+      <p class="text-5xl mb-4 opacity-20">Boite vide</p>
+      <p class="font-bold text-theme-text opacity-60">Aucun message pour l'instant</p>
       <p class="text-sm mt-1">Partage ton lien pour en recevoir !</p>
     </div>
     {% endfor %}
@@ -101,43 +101,43 @@
 
   <!-- Groups List -->
   <div id="groups-section" class="hidden max-w-md mx-auto mt-2 space-y-4 px-4 pb-20">
-    <div class="bg-white rounded-2xl shadow-sm p-5 border-2 border-dashed border-pink-200">
-      <h3 class="font-bold text-gray-800 text-sm mb-3">Nouveau groupe</h3>
+    <div class="bg-theme-surface rounded-2xl shadow-theme p-5 border-2 border-dashed border-mara-pink/30">
+      <h3 class="font-bold text-theme-text text-sm mb-3">Nouveau groupe</h3>
       <form action="{% url 'create_group' %}" method="POST" class="space-y-2">
         {% csrf_token %}
         <input type="text" name="name" placeholder="Nom du groupe..." required
-               class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:border-pink-500 outline-none">
-        <button type="submit" class="w-full bg-pink-500 text-white font-bold py-2 rounded-xl text-xs hover:bg-pink-600 transition">
+               class="w-full bg-theme-bg border border-theme-border text-theme-text rounded-xl px-4 py-2 text-sm focus:border-mara-pink outline-none">
+        <button type="submit" class="w-full bg-mara-gradient text-white font-bold py-2 rounded-xl text-xs hover:opacity-90 transition">
           Créer un groupe anonyme
         </button>
       </form>
     </div>
 
     <!-- Rejoindre via lien -->
-    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
-      <h3 class="font-bold text-gray-800 text-sm mb-3">Rejoindre un groupe</h3>
+    <div class="bg-theme-surface rounded-2xl shadow-theme p-5 border border-theme-border">
+      <h3 class="font-bold text-theme-text text-sm mb-3">Rejoindre un groupe</h3>
       <div class="flex items-center gap-2">
         <input type="text" id="join-link-id" placeholder="Lien ou ID du groupe..." 
-               class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:border-pink-500 outline-none">
-        <button onclick="joinGroup()" class="bg-gray-800 text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-black transition">
+               class="flex-1 bg-theme-bg border border-theme-border text-theme-text rounded-xl px-4 py-2 text-sm focus:border-mara-pink outline-none">
+        <button onclick="joinGroup()" class="bg-theme-text text-theme-bg font-bold px-4 py-2 rounded-xl text-xs hover:opacity-80 transition">
           Rejoindre
         </button>
       </div>
     </div>
 
     {% for g in user_groups %}
-    <a href="{% url 'group_chat' g.link_id %}" class="block bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:border-pink-200 transition">
+    <a href="{% url 'group_chat' g.link_id %}" class="block bg-theme-surface rounded-2xl p-4 shadow-theme border border-theme-border hover:border-mara-pink transition-colors">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500">
+          <div class="w-10 h-10 rounded-full bg-mara-pink/10 flex items-center justify-center text-mara-pink">
             {% include 'includes/icons/group.html' with class='h-6 w-6' %}
           </div>
           <div>
-            <p class="font-extrabold text-gray-800">{{ g.name }}</p>
-            <p class="text-[10px] text-gray-400 font-bold uppercase">{{ g.messages.count }} messages • {{ g.participants.count }} membres</p>
+            <p class="font-extrabold text-theme-text">{{ g.name }}</p>
+            <p class="text-[10px] text-theme-muted font-bold uppercase">{{ g.messages.count }} messages • {{ g.participants.count }} membres</p>
           </div>
         </div>
-        <div class="text-gray-300">
+        <div class="text-theme-muted opacity-40">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
           </svg>
@@ -146,12 +146,12 @@
     </a>
     {% empty %}
     <div class="text-center py-10">
-      <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="w-16 h-16 bg-theme-bg rounded-full flex items-center justify-center mx-auto mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-theme-muted opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       </div>
-      <p class="text-gray-400 text-sm italic">Tu n'as créé aucun groupe pour le moment.</p>
+      <p class="text-theme-muted text-sm italic">Tu n'as créé aucun groupe pour le moment.</p>
     </div>
     {% endfor %}
   </div>
@@ -159,8 +159,7 @@
   <!-- CTA partage -->
   <div class="max-w-md mx-auto px-4 mt-4">
     <a href="{% url 'profile_share' user.link_id %}"
-       class="block w-full text-center text-white font-extrabold py-4 rounded-2xl text-sm shadow-md"
-       style="background:linear-gradient(135deg,#FF5078,#FF8C42)">
+       class="block w-full text-center text-white font-extrabold py-4 rounded-2xl text-sm shadow-theme-lg bg-mara-gradient hover:opacity-90 transition">
       Partager mon lien
     </a>
   </div>

@@ -6,39 +6,39 @@
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+<div class="min-h-screen bg-theme-bg flex flex-col items-center justify-center px-4 py-10">
 
   <!-- Logo -->
   <div class="mb-6 text-center">
     <h1 class="text-5xl font-extrabold text-mara">MARA</h1>
-    <p class="text-gray-400 text-sm mt-1">Message At Random Anonymous</p>
+    <p class="text-theme-muted text-sm mt-1">Message At Random Anonymous</p>
   </div>
 
   <!-- Create Card -->
-  <div id="create-card" class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-    <h2 class="text-xl font-bold text-gray-800 mb-1">Cree ton profil</h2>
-    <p class="text-gray-400 text-sm mb-6">Recois des messages anonymes de tes amis</p>
+  <div id="create-card" class="bg-theme-surface rounded-2xl shadow-theme-lg p-8 w-full max-w-md border border-theme-border">
+    <h2 class="text-xl font-bold text-theme-text mb-1">Cree ton profil</h2>
+    <p class="text-theme-muted text-sm mb-6">Recois des messages anonymes de tes amis</p>
 
     {% if messages %}
       {% for msg in messages %}
-        <div class="bg-red-50 text-red-500 text-sm rounded-lg px-4 py-2 mb-4">{{ msg }}</div>
+        <div class="bg-red-500/10 text-red-500 text-sm rounded-lg px-4 py-2 mb-4 border border-red-500/20">{{ msg }}</div>
       {% endfor %}
     {% endif %}
 
     {% if pseudo_taken %}
-      <div class="bg-orange-50 text-orange-600 text-sm rounded-lg px-4 py-3 mb-4 border border-orange-100">
+      <div class="bg-orange-500/10 text-orange-600 text-sm rounded-lg px-4 py-3 mb-4 border border-orange-500/20">
         <p class="font-bold mb-2">Le pseudo @{{ typed_pseudo }} est deja pris !</p>
-        <p class="mb-2 text-xs">Voici quelques suggestions :</p>
+        <p class="mb-2 text-xs opacity-80">Voici quelques suggestions :</p>
         <div class="flex flex-wrap gap-2 mb-4">
           {% for sug in suggestions %}
-          <button type="button" onclick="document.getElementById('pseudo-input').value='{{ sug }}'" class="bg-white px-3 py-1.5 rounded-full border border-orange-200 text-orange-600 font-bold hover:bg-orange-100 transition shadow-sm text-xs">
+          <button type="button" onclick="document.getElementById('pseudo-input').value='{{ sug }}'" class="bg-theme-surface px-3 py-1.5 rounded-full border border-orange-500/30 text-orange-600 font-bold hover:bg-orange-500/10 transition shadow-sm text-xs">
             @{{ sug }}
           </button>
           {% endfor %}
         </div>
-        <div class="border-t border-orange-200 pt-3">
+        <div class="border-t border-orange-500/20 pt-3">
           <p class="text-xs font-bold mb-2">C'est ton compte ?</p>
-          <button type="button" onclick="showLoginForm('{{ typed_pseudo }}')" class="bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-orange-700 w-full text-center">
+          <button type="button" onclick="showLoginForm('{{ typed_pseudo }}')" class="bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-orange-700 w-full text-center transition">
             Connecte-toi avec ton PIN
           </button>
         </div>
@@ -50,9 +50,9 @@
 
       <!-- Pseudo -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Ton pseudo *</label>
-        <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-pink-400">
-          <span class="px-3 text-gray-400 bg-gray-50 py-3 border-r border-gray-200 text-sm">mara.app/u/</span>
+        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Ton pseudo *</label>
+        <div class="flex items-center border border-theme-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-mara-pink/50 transition bg-theme-bg">
+          <span class="px-3 text-theme-muted bg-theme-bg/50 py-3 border-r border-theme-border text-sm">mara.app/u/</span>
           <input
             id="pseudo-input"
             type="text"
@@ -60,14 +60,14 @@
             value="{{ typed_pseudo|default:'' }}"
             placeholder="tonpseudo"
             required
-            class="flex-1 px-3 py-3 outline-none text-sm"
+            class="flex-1 px-3 py-3 bg-transparent outline-none text-sm text-theme-text"
           />
         </div>
       </div>
 
       <!-- Code PIN -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Code PIN (4 chiffres) *</label>
+        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Code PIN (4 chiffres) *</label>
         <input
           type="password"
           pattern="[0-9]{4}"
@@ -76,19 +76,19 @@
           name="pin_code"
           placeholder="Ex: 1234"
           required
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-pink-400 text-center tracking-widest font-bold"
+          class="w-full px-4 py-3 bg-theme-bg border border-theme-border text-theme-text rounded-xl outline-none text-sm focus:ring-2 focus:ring-mara-pink/50 text-center tracking-widest font-bold transition"
         />
-        <p class="text-xs text-gray-400 mt-1">Garde-le secret, il te servira a te reconnecter.</p>
+        <p class="text-xs text-theme-muted mt-1">Garde-le secret, il te servira a te reconnecter.</p>
       </div>
 
       <!-- Photo (facultatif) -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Photo de profil <span class="text-gray-400">(facultatif)</span></label>
+        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Photo de profil <span class="text-theme-muted">(facultatif)</span></label>
         <input
           type="file"
           name="photo"
           accept="image/*"
-          class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-600 hover:file:bg-pink-100"
+          class="block w-full text-sm text-theme-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-mara-pink/10 file:text-mara-pink hover:file:bg-mara-pink/20 transition"
         />
       </div>
 
@@ -98,35 +98,35 @@
     </form>
     
     <div class="mt-4 text-center">
-      <button type="button" onclick="toggleForms()" class="text-pink-500 text-sm font-bold hover:underline">J'ai deja un compte (Connexion)</button>
+      <button type="button" onclick="toggleForms()" class="text-mara-pink text-sm font-bold hover:underline transition">J'ai deja un compte (Connexion)</button>
     </div>
   </div>
 
   <!-- Login Card (Hidden by default) -->
-  <div id="login-card" class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md hidden">
-    <h2 class="text-xl font-bold text-gray-800 mb-1">Bon retour !</h2>
-    <p class="text-gray-400 text-sm mb-6">Connecte-toi avec ton pseudo et ton code PIN</p>
+  <div id="login-card" class="bg-theme-surface rounded-2xl shadow-theme-lg p-8 w-full max-w-md hidden border border-theme-border">
+    <h2 class="text-xl font-bold text-theme-text mb-1">Bon retour !</h2>
+    <p class="text-theme-muted text-sm mb-6">Connecte-toi avec ton pseudo et ton code PIN</p>
 
     <form method="POST" action="{% url 'login_with_pin' %}" class="space-y-4">
       {% csrf_token %}
       
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Ton pseudo</label>
-        <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-pink-400">
-          <span class="px-3 text-gray-400 bg-gray-50 py-3 border-r border-gray-200 text-sm">@</span>
+        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Ton pseudo</label>
+        <div class="flex items-center border border-theme-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-mara-pink/50 transition bg-theme-bg">
+          <span class="px-3 text-theme-muted bg-theme-bg/50 py-3 border-r border-theme-border text-sm">@</span>
           <input
             id="login-pseudo"
             type="text"
             name="pseudo"
             placeholder="tonpseudo"
             required
-            class="flex-1 px-3 py-3 outline-none text-sm"
+            class="flex-1 px-3 py-3 bg-transparent outline-none text-sm text-theme-text"
           />
         </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Code PIN</label>
+        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Code PIN</label>
         <input
           type="password"
           pattern="[0-9]{4}"
@@ -135,19 +135,22 @@
           name="pin_code"
           placeholder="••••"
           required
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-pink-400 text-center tracking-widest font-bold"
+          class="w-full px-4 py-3 bg-theme-bg border border-theme-border text-theme-text rounded-xl outline-none text-sm focus:ring-2 focus:ring-mara-pink/50 text-center tracking-widest font-bold transition"
         />
       </div>
 
-      <button type="submit" class="bg-gray-800 w-full text-white font-bold py-3 rounded-xl text-sm tracking-wide shadow-md hover:bg-gray-700 transition mt-2">
+      <button type="submit" class="bg-theme-text text-theme-bg w-full font-bold py-3 rounded-xl text-sm tracking-wide shadow-md hover:opacity-80 transition mt-2">
         Me connecter
       </button>
     </form>
     
     <div class="mt-4 text-center">
-      <button type="button" onclick="toggleForms()" class="text-gray-500 text-sm font-bold hover:underline">← Retour a la creation</button>
+      <button type="button" onclick="toggleForms()" class="text-theme-muted text-sm font-bold hover:underline transition">← Retour a la creation</button>
     </div>
   </div>
+
+  <p class="text-theme-muted text-xs mt-6 text-center">En continuant, tu acceptes nos <br/><a href="{% url 'terms' %}" class="underline hover:text-mara-pink transition">Conditions d'utilisation</a> · <a href="{% url 'privacy' %}" class="underline hover:text-mara-pink transition">Confidentialité</a></p>
+</div>
 
   <script>
     function toggleForms() {

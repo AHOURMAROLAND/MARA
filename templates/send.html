@@ -15,60 +15,37 @@
 {% block tw_desc %}Message anonyme via MARA pour @{{ recipient.pseudo }}. Reponds sans que je sache qui tu es !{% endblock %}
 {% block tw_image %}{% if recipient.photo %}{{ recipient.photo.url }}{% else %}{{ APP_DEFAULT_IMAGE }}{% endif %}{% endblock %}
 
-{% block extra_head %}
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-  * { font-family: 'Nunito', sans-serif; }
-  .send-card {
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(255,80,120,0.15);
-  }
-  .card-header-send {
-    background: linear-gradient(135deg, #FF5078, #FF8C42);
-    padding: 20px;
-    text-align: center;
-  }
-  .card-body-send {
-    background: white;
-    padding: 20px;
-  }
-  textarea:focus { outline: none; box-shadow: 0 0 0 2px #FF507844; }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
+<div class="min-h-screen bg-theme-bg flex flex-col items-center justify-center px-4 py-10">
 
   <!-- Photo de profil au-dessus -->
   <div class="mb-4 flex flex-col items-center">
     {% if recipient.photo %}
       <img src="{{ recipient.photo.url }}" alt="{{ recipient.pseudo }}"
-           class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md mb-2"/>
+           class="w-20 h-20 rounded-full object-cover border-4 border-theme-surface shadow-theme mb-2"/>
     {% else %}
-      <div class="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-extrabold border-4 border-white shadow-md mb-2"
-           style="background:linear-gradient(135deg,#FF5078,#FF8C42)">
+      <div class="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-extrabold border-4 border-theme-surface shadow-theme mb-2 bg-mara-gradient">
         {{ recipient.pseudo|first|upper }}
       </div>
     {% endif %}
-    <p class="font-extrabold text-gray-800">@{{ recipient.pseudo }}</p>
+    <p class="font-extrabold text-theme-text">@{{ recipient.pseudo }}</p>
   </div>
 
   <!-- Carte style NGL -->
-  <div class="send-card w-full max-w-sm">
+  <div class="ngl-card w-full max-w-sm">
 
     <!-- Header gradient -->
-    <div class="card-header-send">
-      <p class="text-white font-extrabold text-base leading-snug">
+    <div class="ngl-header">
+      <p class="ngl-header-text">
         envoie-moi des messages<br>anonymes !
       </p>
     </div>
 
     <!-- Corps formulaire -->
-    <div class="card-body-send">
+    <div class="ngl-body">
 
       {% if error %}
-        <div class="bg-red-50 text-red-500 text-sm rounded-xl px-4 py-2 mb-3 font-semibold">{{ error }}</div>
+        <div class="bg-red-500/10 text-red-500 text-sm rounded-xl px-4 py-2 mb-3 font-semibold border border-red-500/20">{{ error }}</div>
       {% endif %}
 
       <form method="POST" enctype="multipart/form-data" class="space-y-3">
@@ -78,27 +55,26 @@
           name="text"
           placeholder="Pose une question ou envoie un message..."
           rows="4"
-          class="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm resize-none bg-gray-50 font-semibold text-gray-700"
+          class="w-full border border-theme-border rounded-2xl px-4 py-3 text-sm resize-none bg-theme-bg font-semibold text-theme-text focus:ring-2 focus:ring-mara-pink/50 transition-all outline-none"
         ></textarea>
 
         {% if recipient.accepts_images %}
-        <div class="border border-dashed border-pink-200 rounded-2xl p-3 space-y-2 bg-pink-50">
-          <label class="block text-xs text-pink-400 font-bold">Photo - Ajouter une image (optionnel)</label>
+        <div class="border border-dashed border-mara-pink/30 rounded-2xl p-3 space-y-2 bg-mara-pink/5">
+          <label class="block text-xs text-mara-pink font-bold">Photo - Ajouter une image (optionnel)</label>
           <input type="file" name="image" accept="image/*" id="image-input"
-            class="block w-full text-xs text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:bg-white file:text-pink-500 file:font-bold"/>
+            class="block w-full text-xs text-theme-muted file:mr-3 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:bg-theme-surface file:text-mara-pink file:font-bold border-theme-border"/>
           <input type="text" name="caption" placeholder="Legende..."
-            class="w-full border border-pink-100 rounded-xl px-3 py-2 text-xs bg-white font-semibold outline-none"/>
+            class="w-full border border-theme-border rounded-xl px-3 py-2 text-xs bg-theme-surface text-theme-text font-semibold outline-none focus:border-mara-pink transition-colors"/>
         </div>
         {% endif %}
 
         <button type="submit"
-          class="w-full text-white font-extrabold py-4 rounded-2xl text-sm shadow"
-          style="background:linear-gradient(135deg,#FF5078,#FF8C42)">
+          class="ngl-btn ngl-btn-gradient py-4 rounded-2xl">
           Envoyer anonymement
         </button>
       </form>
 
-      <p class="text-center text-xs text-gray-400 mt-3 font-semibold">
+      <p class="text-center text-xs text-theme-muted mt-3 font-semibold">
         👇 <strong>{{ visitor_count }}</strong> des potes viennent d'envoyer un message
       </p>
     </div>
@@ -107,13 +83,13 @@
   <!-- CTA creer profil -->
   <div class="mt-4 w-full max-w-sm">
     <a href="{% url 'home' %}"
-       class="block w-full text-center bg-black text-white font-extrabold py-4 rounded-2xl text-sm">
+       class="block w-full text-center bg-theme-text text-theme-bg font-extrabold py-4 rounded-2xl text-sm hover:opacity-90 transition">
       Recois tes propres messages !
     </a>
   </div>
 
-  <p class="text-gray-300 text-xs mt-4">
-    <a href="{% url 'terms' %}">Terms</a> · <a href="{% url 'privacy' %}">Privacy</a>
+  <p class="text-theme-muted text-xs mt-4">
+    <a href="{% url 'terms' %}" class="hover:text-mara-pink transition">Terms</a> · <a href="{% url 'privacy' %}" class="hover:text-mara-pink transition">Privacy</a>
   </p>
 </div>
 {% endblock %}

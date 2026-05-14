@@ -66,12 +66,23 @@
         extend: {
           colors: {
             mara: {
-              pink: '#FF5078',
-              orange: '#FF8C42',
+              pink: 'var(--mara-pink)',
+              orange: 'var(--mara-orange)',
+            },
+            theme: {
+              bg: 'var(--bg-color)',
+              surface: 'var(--card-bg)',
+              text: 'var(--text-color)',
+              muted: 'var(--text-muted)',
+              border: 'var(--border-color)',
             }
           },
           backgroundImage: {
-            'mara-gradient': 'linear-gradient(135deg, #FF5078 0%, #FF8C42 100%)',
+            'mara-gradient': 'var(--mara-gradient)',
+          },
+          boxShadow: {
+            'theme': 'var(--shadow)',
+            'theme-lg': 'var(--shadow-lg)',
           }
         }
       }
@@ -91,7 +102,7 @@
 
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen">
+<body class="bg-theme-bg text-theme-text font-sans selection:bg-mara-pink/20 selection:text-mara-pink min-h-screen">
   <!-- Skeleton Loader (centralisé via style.css) -->
   <div id="skeleton-loader" class="hidden min-h-screen pb-20">
     <div class="bg-mara px-4 pt-10 pb-10 text-center">

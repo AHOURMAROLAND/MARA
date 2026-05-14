@@ -2,119 +2,12 @@
 
 {% block title %}Message — MARA{% endblock %}
 
-{% block extra_head %}
-<style>
-  * { font-family: 'Nunito', sans-serif !important; }
-  
-  .ngl-card {
-    background: white;
-    border-radius: 24px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    overflow: hidden;
-    max-width: 380px;
-    width: 95%;
-    margin: 0 auto;
-  }
-  
-  .ngl-header {
-    background: linear-gradient(135deg, #FF2D55 0%, #FF6B35 50%, #FF8C42 100%);
-    padding: 24px 20px 20px;
-    text-align: center;
-    position: relative;
-  }
-  
-  .ngl-header::after {
-    content: '';
-    position: absolute;
-    bottom: -20px;
-    left: 0;
-    right: 0;
-    height: 20px;
-    background: white;
-    border-radius: 20px 20px 0 0;
-  }
-  
-  .ngl-header-text {
-    color: white;
-    font-weight: 800;
-    font-size: 16px;
-    line-height: 1.4;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  
-  .ngl-body {
-    padding: 24px 20px 28px;
-    text-align: center;
-    background: white;
-  }
-  
-  .ngl-message {
-    color: #1a1a1a;
-    font-weight: 700;
-    font-size: 22px;
-    line-height: 1.35;
-    margin-bottom: 16px;
-  }
-  
-  .ngl-time {
-    color: #999;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  
-  .ngl-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 14px 20px;
-    border-radius: 100px;
-    font-weight: 700;
-    font-size: 15px;
-    border: none;
-    cursor: pointer;
-    transition: transform 0.1s ease;
-  }
-  
-  .ngl-btn:active {
-    transform: scale(0.98);
-  }
-  
-  .ngl-btn-gradient {
-    background: linear-gradient(135deg, #FF2D55, #FF6B35);
-    color: white;
-    box-shadow: 0 4px 15px rgba(255,45,85,0.3);
-  }
-  
-  .ngl-btn-black {
-    background: #000;
-    color: white;
-  }
-  
-  .ngl-btn-outline {
-    background: #f5f5f5;
-    color: #666;
-  }
-  
-  .ngl-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-  }
-  
-  .ngl-actions button {
-    flex: 1;
-  }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="min-h-screen bg-gray-50 flex flex-col">
+<div class="min-h-screen bg-theme-bg flex flex-col">
   
   <!-- Header Navigation -->
   <div class="px-4 py-3">
-    <a href="{% url 'inbox' user.link_id %}" class="inline-flex items-center gap-1 text-sm text-gray-400 font-semibold">
+    <a href="{% url 'inbox' user.link_id %}" class="inline-flex items-center gap-1 text-sm text-theme-muted font-semibold hover:text-mara-pink transition-colors">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
       </svg>
@@ -137,11 +30,11 @@
       <!-- Message Body -->
       <div class="ngl-body">
         {% if msg.image %}
-        <div class="mb-4 rounded-xl overflow-hidden bg-gray-50">
+        <div class="mb-4 rounded-xl overflow-hidden bg-theme-bg">
           <img src="{{ msg.image.url }}" alt="Image" class="w-full h-auto block" style="max-height: 550px;"/>
         </div>
         {% if msg.image_caption and msg.image_caption.lower != 'none' %}
-          <p class="text-gray-600 text-sm font-semibold mb-2">{{ msg.image_caption }}</p>
+          <p class="text-theme-muted text-sm font-semibold mb-2">{{ msg.image_caption }}</p>
         {% endif %}
         {% endif %}
         
@@ -170,13 +63,13 @@
       <div class="ngl-actions">
         <form method="POST" action="{% url 'report_message' user.link_id msg.id %}" class="flex-1">
           {% csrf_token %}
-          <button type="submit" class="ngl-btn ngl-btn-outline text-red-500">
+          <button type="submit" class="ngl-btn ngl-btn-outline text-red-500 hover:bg-red-500/10 transition-colors">
             Signaler
           </button>
         </form>
         <form method="POST" action="{% url 'delete_message' user.link_id msg.id %}" class="flex-1">
           {% csrf_token %}
-          <button type="submit" class="ngl-btn ngl-btn-outline text-gray-500">
+          <button type="submit" class="ngl-btn ngl-btn-outline text-theme-muted hover:bg-theme-bg/80 transition-colors">
             Supprimer
           </button>
         </form>
