@@ -96,27 +96,13 @@ DATABASES = {
     )
 }
 
-# Cache — utiliser Redis en prod, LocMem en dev
-REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
-
-if not DEBUG:
-    # Production: Use Redis
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': REDIS_URL,
-            'KEY_PREFIX': 'mara',
-            'TIMEOUT': 300,
-        }
+# Cache — utiliser LocMem pour tout le monde (simple et fiable)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'mara-cache',
     }
-else:
-    # Development: Local memory is fine
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'mara-cache',
-        }
-    }
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
