@@ -11,5 +11,8 @@ urlpatterns = [
     path('api/g/<str:link_id>/react/<uuid:message_id>/', views.react_group_message_http, name='api_react_group_message_http'),
     path('api/g/<str:link_id>/toggle-write/<int:participant_id>/', views.toggle_participant_write, name='api_toggle_participant_write'),
     path('api/g/<str:link_id>/delete-user/<int:participant_id>/', views.delete_participant, name='api_delete_participant'),
+    path('api/g/<str:link_id>/archive/', views.archive_group, name='api_archive_group'),
+    path('api/g/<str:link_id>/delete/', views.delete_group, name='api_delete_group'),
+    path('api/g/<str:link_id>/scroll/', views.update_scroll_position, name='api_update_scroll_position'),
     path('download/image/<uuid:message_id>/', views.proxy_download_image, name='proxy_download_image'),
 ]

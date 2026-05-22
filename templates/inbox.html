@@ -13,7 +13,7 @@
     <div class="max-w-md mx-auto">
 
       <!-- Ligne du haut -->
-      <div class="flex items-center justify-between mb-4">
+      <a href="{% url 'profile_settings' user.link_id %}" class="block flex items-center justify-between mb-4 hover:bg-theme-bg/50 transition-colors cursor-pointer rounded-xl p-2 -mx-2">
         <div class="flex items-center gap-3">
           {% if user.photo %}
             <img src="{{ user.photo.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-mara-pink/20"/>
@@ -28,11 +28,9 @@
           {% if unread_count %}
             <span class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold bg-mara-gradient">{{ unread_count }}</span>
           {% endif %}
-          <a href="{% url 'profile_settings' user.link_id %}" class="text-theme-muted hover:text-mara-pink transition-colors" aria-label="Paramètres du profil">
-            {% include 'includes/icons/settings.html' with class='w-6 h-6' %}
-          </a>
+          {% include 'includes/icons/settings.html' with class='w-6 h-6 text-theme-muted' %}
         </div>
-      </div>
+      </a>
 
       <!-- Tabs -->
       <div class="flex gap-6 border-b border-theme-border">
@@ -98,6 +96,33 @@
     </div>
     {% endfor %}
   </div>
+  
+  <!-- Pagination -->
+  {% if messages.has_other_pages %}
+  <div class="max-w-md mx-auto mt-4 px-4">
+    <div class="flex items-center justify-between bg-theme-surface rounded-2xl p-4 shadow-theme border border-theme-border">
+      {% if messages.has_previous %}
+        <a href="?page={{ messages.previous_page_number }}" class="text-mara-pink font-bold text-sm hover:opacity-80 transition">
+          ← Précédent
+        </a>
+      {% else %}
+        <span class="text-theme-muted text-sm opacity-50">← Précédent</span>
+      {% endif %}
+      
+      <span class="text-theme-muted text-sm font-bold">
+        Page {{ messages.number }} / {{ messages.paginator.num_pages }}
+      </span>
+      
+      {% if messages.has_next %}
+        <a href="?page={{ messages.next_page_number }}" class="text-mara-pink font-bold text-sm hover:opacity-80 transition">
+          Suivant →
+        </a>
+      {% else %}
+        <span class="text-theme-muted text-sm opacity-50">Suivant →</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Groups List -->
   <div id="groups-section" class="hidden max-w-md mx-auto mt-2 space-y-4 px-4 pb-20">
@@ -126,21 +151,29 @@
     </div>
 
     {% for g in user_groups %}
-    <a href="{% url 'group_chat' g.link_id %}" class="block bg-theme-surface rounded-2xl p-4 shadow-theme border border-theme-border hover:border-mara-pink transition-colors">
+    <a href="{% url 'group_chat' g.group.link_id %}" class="block bg-theme-surface rounded-2xl p-4 shadow-theme border border-theme-border hover:border-mara-pink transition-colors">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-mara-pink/10 flex items-center justify-center text-mara-pink">
+          <div class="w-10 h-10 rounded-full bg-mara-pink/10 flex items-center justify-center text-mara-pink relative">
             {% include 'includes/icons/group.html' with class='h-6 w-6' %}
+            {% if g.unread_count > 0 %}
+            <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-mara-gradient text-white text-[10px] font-bold flex items-center justify-center">{{ g.unread_count }}</span>
+            {% endif %}
           </div>
           <div>
-            <p class="font-extrabold text-theme-text">{{ g.name }}</p>
-            <p class="text-[10px] text-theme-muted font-bold uppercase">{{ g.messages.count }} messages • {{ g.participants.count }} membres</p>
+            <p class="font-extrabold text-theme-text">{{ g.group.name }}</p>
+            <p class="text-[10px] text-theme-muted font-bold uppercase">{{ g.group.messages.count }} messages • {{ g.group.participants.count }} membres</p>
           </div>
         </div>
-        <div class="text-theme-muted opacity-40">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-          </svg>
+        <div class="flex items-center gap-2">
+          {% if g.unread_count > 0 %}
+            <span class="w-2 h-2 rounded-full bg-mara-pink animate-pulse"></span>
+          {% endif %}
+          <div class="text-theme-muted opacity-40">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          </div>
         </div>
       </div>
     </a>

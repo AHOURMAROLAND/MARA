@@ -20,7 +20,16 @@ class Group(models.Model):
     link_id = models.CharField(max_length=100, unique=True)
     ephemeral_mode = models.CharField(max_length=10, choices=EPHEMERAL_CHOICES, default='none')
     is_active = models.BooleanField(default=True)
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    last_activity = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['link_id']),
+            models.Index(fields=['last_activity']),
+        ]
 
     def __str__(self):
         return f"Group: {self.name} (@{self.creator.pseudo})"
@@ -34,13 +43,28 @@ class GroupParticipant(models.Model):
     can_write = models.BooleanField(default=True)
     last_activity = models.DateTimeField(default=timezone.now)
     last_pseudo_update = models.DateTimeField(default=timezone.now)
+    last_read_message_id = models.UUIDField(null=True, blank=True)
+    last_scroll_position = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ['group', 'session_token']
+        indexes = [
+            models.Index(fields=['group', 'session_token']),
+            models.Index(fields=['last_read_message_id']),
+        ]
 
     def __str__(self):
         return f"{self.nickname} in {self.group.name} ({'Banni' if not self.can_write else 'Actif'})"
+    
+    def get_unread_count(self):
+        """Calculate unread messages count for this participant"""
+        if self.last_read_message_id:
+            return self.group.messages.filter(
+                created_at__gt=self.group.messages.filter(id=self.last_read_message_id).first().created_at
+            ).count()
+        else:
+            return self.group.messages.count()
 
 class GroupMessage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -57,10 +81,18 @@ class GroupMessage(models.Model):
     sender_ip = models.GenericIPAddressField(null=True, blank=True)
     sender_device = models.CharField(max_length=255, null=True, blank=True)
     
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['group']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['sender_session_token']),
+        ]
 
     def __str__(self):
         return f"Msg in {self.group.name} by {self.sender_nickname}"

@@ -124,44 +124,24 @@
         <div id="push-success-msg" class="hidden mt-3 p-3 bg-green-50 text-green-600 text-sm rounded-lg"></div>
       </div>
 
-      <!-- Telegram Notifications (Alternative) -->
+      <!-- Archives -->
       <div class="bg-theme-surface rounded-2xl shadow-theme p-5 border border-theme-border">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+        <a href="{% url 'archived_messages' user.link_id %}" class="flex items-center justify-between hover:opacity-80 transition">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-mara-pink/10 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-mara-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-theme-text">Messages archivés</h3>
+              <p class="text-xs text-theme-muted">Voir tes conversations archivées</p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-bold text-theme-text">Telegram (Plus fiable)</h3>
-            <p class="text-xs text-theme-muted">Reçois les alertes directement sur Telegram</p>
-          </div>
-        </div>
-        
-        <div class="space-y-3">
-          <p class="text-xs text-theme-muted leading-relaxed">
-            Si les notifications navigateur ne marchent pas bien sur ton mobile, utilise notre bot Telegram.
-          </p>
-          
-          <div class="bg-theme-bg p-3 rounded-xl border border-theme-border">
-            <p class="text-[10px] font-bold text-theme-text uppercase mb-1">Comment faire :</p>
-            <ol class="text-[10px] text-theme-muted space-y-1 list-decimal list-inside">
-              <li>Contacte <a href="https://t.me/userinfobot" target="_blank" class="text-blue-500 font-bold">@userinfobot</a> sur Telegram pour obtenir ton <b>Id</b>.</li>
-              <li>Copie cet ID (uniquement les chiffres) ci-dessous.</li>
-            </ol>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-theme-text opacity-70 mb-1 uppercase">Ton Chat ID Telegram</label>
-            <input
-              type="text"
-              name="telegram_chat_id"
-              value="{{ user.telegram_chat_id|default:'' }}"
-              placeholder="Ex: 123456789"
-              class="w-full px-4 py-2 bg-theme-bg border border-theme-border text-theme-text rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500/50 transition"
-            />
-          </div>
-        </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-theme-muted" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </a>
       </div>
 
     <!-- Theme Selection -->

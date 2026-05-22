@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, Http404, JsonResponse
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone
+from django.contrib import messages
 from apps.users.models import UserProfile
 from apps.users.utils import create_session, get_owner_from_session, random_visitor_count, get_client_ip, get_device_name
 from apps.users.image_utils import optimize_message_image
@@ -155,30 +157,101 @@ def send_message(request, link_id):
 
 
 def inbox(request, link_id):
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    
     owner = get_owner_from_session(request)
     if not owner or owner.link_id != link_id:
         return redirect('home')
 
-    messages_list = Message.objects.filter(recipient=owner, is_reported=False).order_by('-created_at')
+    messages_list = Message.objects.filter(
+        recipient=owner,
+        is_reported=False,
+        is_archived=False
+    ).order_by('-created_at')
     unread_count = messages_list.filter(is_read=False).count()
+    
+    # Pagination - 20 messages per page
+    paginator = Paginator(messages_list, 20)
+    page = request.GET.get('page', 1)
+    
+    try:
+        messages = paginator.page(page)
+    except PageNotAnInteger:
+        messages = paginator.page(1)
+    except EmptyPage:
+        messages = paginator.page(paginator.num_pages)
     
     # Get groups created by the user or where the user is a participant
     from apps.groups.models import Group
+    from django.db.models import Max, Case, When, F, Value, IntegerField
     session_token = request.session.get('ngl_token')
     
-    # Groups created by user
-    created_groups = owner.created_groups.all()
+    # Helper function to get groups with unread counts
+    def get_groups_with_unread(groups_queryset):
+        groups_with_unread = []
+        for group in groups_queryset:
+            participant = group.participants.filter(session_token=session_token).first()
+            unread_count = 0
+            if participant and participant.last_read_message_id:
+                # Count messages after last_read_message_id
+                last_read_msg = group.messages.filter(id=participant.last_read_message_id).first()
+                if last_read_msg:
+                    unread_count = group.messages.filter(created_at__gt=last_read_msg.created_at).count()
+            elif participant:
+                # No last_read_message_id means all messages are unread
+                unread_count = group.messages.count()
+            
+            groups_with_unread.append({
+                'group': group,
+                'unread_count': unread_count,
+                'last_activity': group.last_message_time or group.last_activity
+            })
+        return groups_with_unread
     
-    # Groups joined by user (via session token)
-    joined_groups = Group.objects.filter(participants__session_token=session_token).exclude(creator=owner)
+    # --- Active Groups ---
+    # Groups created by user (excluding archived)
+    created_groups = owner.created_groups.filter(is_archived=False)
     
-    user_groups = (created_groups | joined_groups).distinct().order_by('-created_at')
+    # Groups joined by user (via session token, excluding archived)
+    joined_groups = Group.objects.filter(participants__session_token=session_token, is_archived=False).exclude(creator=owner)
+    
+    # Combine and annotate with unread counts
+    user_groups = (created_groups | joined_groups).distinct()
+    
+    # Annotate with last message time
+    user_groups = user_groups.annotate(
+        last_message_time=Max('messages__created_at')
+    )
+    
+    # Sort by last_activity (last message time), then by created_at
+    user_groups = user_groups.order_by('-last_message_time', '-last_activity', '-created_at')
+    groups_with_unread = get_groups_with_unread(user_groups)
+    
+    # --- Archived Groups ---
+    # Groups created by user (archived)
+    archived_created_groups = owner.created_groups.filter(is_archived=True)
+    
+    # Groups joined by user (via session token, archived)
+    archived_joined_groups = Group.objects.filter(participants__session_token=session_token, is_archived=True).exclude(creator=owner)
+    
+    # Combine and annotate
+    archived_user_groups = (archived_created_groups | archived_joined_groups).distinct()
+    
+    # Annotate with last message time
+    archived_user_groups = archived_user_groups.annotate(
+        last_message_time=Max('messages__created_at')
+    )
+    
+    # Sort by archived_at (newest first)
+    archived_user_groups = archived_user_groups.order_by('-archived_at')
+    archived_groups_with_unread = get_groups_with_unread(archived_user_groups)
 
     return render(request, 'inbox.html', {
         'user': owner,
-        'messages': messages_list,
+        'messages': messages,
         'unread_count': unread_count,
-        'user_groups': user_groups,
+        'user_groups': groups_with_unread,
+        'archived_groups': archived_groups_with_unread,
     })
 
 
@@ -204,12 +277,91 @@ def delete_message(request, link_id, msg_id):
 
     msg = get_object_or_404(Message, id=msg_id, recipient=owner)
     if request.method == 'POST':
-        if msg.image:
-            # Delete from Cloudinary or local storage
-            msg.image.delete(save=False)
-        msg.delete()
+        msg.is_archived = True
+        msg.archived_at = timezone.now()
+        msg.save(update_fields=['is_archived', 'archived_at'])
+        messages.success(request, 'Message archivé avec succès !')
 
     return redirect('inbox', link_id=link_id)
+
+
+def unarchive_message(request, link_id, msg_id):
+    owner = get_owner_from_session(request)
+    if not owner or owner.link_id != link_id:
+        return redirect('home')
+
+    msg = get_object_or_404(Message, id=msg_id, recipient=owner)
+    if request.method == 'POST':
+        msg.is_archived = False
+        msg.archived_at = None
+        msg.save(update_fields=['is_archived', 'archived_at'])
+        messages.success(request, 'Message désarchivé avec succès !')
+
+    return redirect('archived_messages', link_id=link_id)
+
+
+def archived_messages(request, link_id):
+    owner = get_owner_from_session(request)
+    if not owner or owner.link_id != link_id:
+        return redirect('home')
+
+    archived_list = Message.objects.filter(
+        recipient=owner,
+        is_archived=True,
+        is_reported=False
+    ).order_by('-archived_at')
+    
+    # Get archived groups
+    from apps.groups.models import Group
+    from django.db.models import Max
+    session_token = request.session.get('ngl_token')
+    
+    # Helper function to get groups with unread counts
+    def get_groups_with_unread(groups_queryset):
+        groups_with_unread = []
+        for group in groups_queryset:
+            participant = group.participants.filter(session_token=session_token).first()
+            unread_count = 0
+            if participant and participant.last_read_message_id:
+                # Count messages after last_read_message_id
+                last_read_msg = group.messages.filter(id=participant.last_read_message_id).first()
+                if last_read_msg:
+                    unread_count = group.messages.filter(created_at__gt=last_read_msg.created_at).count()
+            elif participant:
+                # No last_read_message_id means all messages are unread
+                unread_count = group.messages.count()
+            
+            groups_with_unread.append({
+                'group': group,
+                'unread_count': unread_count,
+                'last_activity': group.last_message_time or group.last_activity
+            })
+        return groups_with_unread
+    
+    # --- Archived Groups ---
+    # Groups created by user (archived)
+    archived_created_groups = owner.created_groups.filter(is_archived=True)
+    
+    # Groups joined by user (via session token, archived)
+    archived_joined_groups = Group.objects.filter(participants__session_token=session_token, is_archived=True).exclude(creator=owner)
+    
+    # Combine and annotate
+    archived_user_groups = (archived_created_groups | archived_joined_groups).distinct()
+    
+    # Annotate with last message time
+    archived_user_groups = archived_user_groups.annotate(
+        last_message_time=Max('messages__created_at')
+    )
+    
+    # Sort by archived_at (newest first)
+    archived_user_groups = archived_user_groups.order_by('-archived_at')
+    archived_groups_with_unread = get_groups_with_unread(archived_user_groups)
+
+    return render(request, 'archived.html', {
+        'user': owner,
+        'messages': archived_list,
+        'archived_groups': archived_groups_with_unread,
+    })
 
 
 def check_new_messages(request):

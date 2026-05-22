@@ -21,10 +21,21 @@ class Message(models.Model):
 
     is_read = models.BooleanField(default=False)
     is_reported = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient']),
+            models.Index(fields=['is_read']),
+            models.Index(fields=['is_archived']),
+            models.Index(fields=['is_reported']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['recipient', 'is_read']),
+            models.Index(fields=['recipient', 'created_at']),
+        ]
 
     def __str__(self):
         return f"Msg pour @{self.recipient.pseudo} - {self.created_at:%d/%m/%Y}"

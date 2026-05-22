@@ -96,13 +96,30 @@ DATABASES = {
     )
 }
 
-# Cache — utiliser la DB en prod pour le rate limiting
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'mara-cache',
+# Cache — utiliser Redis en prod, LocMem en dev
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+
+if not DEBUG:
+    # Production: Use Redis
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'mara',
+            'TIMEOUT': 300,
+        }
     }
-}
+else:
+    # Development: Local memory is fine
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'mara-cache',
+        }
+    }
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

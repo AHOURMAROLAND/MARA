@@ -3,7 +3,8 @@ from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
 from django.utils.text import slugify
 from django.utils import timezone
 from django.contrib import messages
-from apps.users.utils import get_owner_from_session, create_session, get_client_ip, get_device_name
+from django.db import models
+from apps.users.utils import get_owner_from_session, create_session, get_client_ip, get_device_name, get_current_session
 from apps.users.image_utils import optimize_message_image
 from django.core.files.base import ContentFile
 import bleach
@@ -89,12 +90,14 @@ def proxy_download_image(request, message_id):
 def group_chat(request, link_id):
     group = get_object_or_404(Group, link_id=link_id, is_active=True)
     
-    # Check if the current user is the owner (BEFORE create_session potentially messes with it)
+    # Check if the current user is the owner
     owner = get_owner_from_session(request)
     
-    # Ensure session exists (will preserve owner if already exists due to my fix in utils.py)
-    create_session(request, user=None, session_type='visitor')
+    # Ensure session exists (only create if not already exists)
     session_token = request.session.get('ngl_token')
+    if not session_token:
+        create_session(request, user=None, session_type='visitor')
+        session_token = request.session.get('ngl_token')
     
     # Re-check owner after session ensures existence
     if not owner:
@@ -115,7 +118,16 @@ def group_chat(request, link_id):
     participant.save(update_fields=['last_activity'])
     
     # Check if the current user is the owner
-    is_owner = (owner == group.creator) if owner else False
+    print(f"[DEBUG] Owner: {owner}")
+    print(f"[DEBUG] Owner type: {type(owner)}")
+    print(f"[DEBUG] Owner id: {owner.id if owner else None}")
+    print(f"[DEBUG] Group Creator: {group.creator}")
+    print(f"[DEBUG] Group Creator type: {type(group.creator)}")
+    print(f"[DEBUG] Group Creator id: {group.creator.id}")
+    print(f"[DEBUG] Are equal (object): {owner == group.creator}")
+    print(f"[DEBUG] Are equal (id): {owner.id == group.creator.id if owner else False}")
+    print(f"[DEBUG] Session: {get_current_session(request)}")
+    is_owner = (owner and owner.id == group.creator.id) if owner else False
     
     messages_list = group.messages.all().order_by('created_at').select_related('parent')
     
@@ -128,11 +140,36 @@ def group_chat(request, link_id):
     # Prefetch reactions
     messages_list = messages_list.prefetch_related('reactions')
     
+    # Find first unread message if participant has last_read_message_id
+    first_unread_index = None
+    if participant.last_read_message_id:
+        try:
+            last_read_msg = messages_list.filter(id=participant.last_read_message_id).first()
+            if last_read_msg:
+                # Find the index of the last read message
+                messages_list_list = list(messages_list)
+                for i, msg in enumerate(messages_list_list):
+                    if msg.id == participant.last_read_message_id:
+                        first_unread_index = i + 1  # Start from next message
+                        break
+                messages_list = messages_list_list
+        except Exception as e:
+            print(f"[MARA] Error finding first unread: {e}")
+    
     # Count active users (last 2 minutes)
     active_count = GroupParticipant.objects.filter(
         group=group, 
         last_activity__gt=timezone.now() - timedelta(minutes=2)
     ).count()
+    
+    # Calculate remaining unread count
+    remaining_unread = 0
+    if participant.last_read_message_id:
+        last_read_msg = group.messages.filter(id=participant.last_read_message_id).first()
+        if last_read_msg:
+            remaining_unread = group.messages.filter(created_at__gt=last_read_msg.created_at).count()
+    elif participant:
+        remaining_unread = group.messages.count()
     
     return render(request, 'groups/chat.html', {
         'group': group,
@@ -140,6 +177,8 @@ def group_chat(request, link_id):
         'messages_list': messages_list,
         'is_owner': is_owner,
         'active_count': active_count,
+        'first_unread_index': first_unread_index,
+        'remaining_unread': remaining_unread,
     })
 
 from apps.users.image_utils import optimize_message_image
@@ -200,6 +239,9 @@ def send_group_message(request, link_id):
         sender_ip=get_client_ip(request),
         sender_device=get_device_name(request)
     )
+    
+    group.last_activity = timezone.now()
+    group.save(update_fields=['last_activity'])
 
     # Broadcast to WebSockets
     try:
@@ -237,7 +279,7 @@ def send_group_message(request, link_id):
     # Trigger Push Notification to Group Creator
     if group.creator:
         try:
-            from apps.users.views import send_push_notification, send_telegram_notification
+            from apps.users.views import send_push_notification
             push_title = f"Nouveau message dans {group.name} 💬"
             push_body = f"{participant.nickname} : {text[:50]}..." if len(text) > 50 else f"{participant.nickname} : {text}"
             
@@ -245,13 +287,9 @@ def send_group_message(request, link_id):
             
             # Don't notify the creator if they are the one who sent the message
             owner = get_owner_from_session(request)
-            if owner != group.creator:
+            if not owner or owner.id != group.creator.id:
                 # Send Web Push
                 send_push_notification(group.creator, push_title, push_body, url=group_url)
-                
-                # Send Telegram
-                tg_message = f"<b>{push_title}</b>\n\n{push_body}\n\n<a href='{group_url}'>Aller au chat</a>"
-                send_telegram_notification(group.creator, tg_message)
         except Exception as e:
             print(f"[MARA] Error triggering group push: {e}")
     
@@ -440,7 +478,7 @@ def group_settings(request, link_id):
     owner = get_owner_from_session(request)
     group = get_object_or_404(Group, link_id=link_id)
     
-    if not owner or owner != group.creator:
+    if not owner or owner.id != group.creator.id:
         return redirect('home')
         
     if request.method == 'POST':
@@ -471,7 +509,7 @@ def toggle_participant_write(request, link_id, participant_id):
     owner = get_owner_from_session(request)
     group = get_object_or_404(Group, link_id=link_id)
     
-    if not owner or owner != group.creator:
+    if not owner or owner.id != group.creator.id:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
         
     participant = get_object_or_404(GroupParticipant, id=participant_id, group=group)
@@ -488,7 +526,7 @@ def delete_participant(request, link_id, participant_id):
     owner = get_owner_from_session(request)
     group = get_object_or_404(Group, link_id=link_id)
     
-    if not owner or owner != group.creator:
+    if not owner or owner.id != group.creator.id:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
         
     participant = get_object_or_404(GroupParticipant, id=participant_id, group=group)
@@ -500,14 +538,97 @@ def delete_participant(request, link_id, participant_id):
         'nickname': nickname
     })
 
+def archive_group(request, link_id):
+    owner = get_owner_from_session(request)
+    group = get_object_or_404(Group, link_id=link_id)
+    
+    if not owner or owner.id != group.creator.id:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    group.is_archived = not group.is_archived
+    if group.is_archived:
+        group.archived_at = timezone.now()
+    else:
+        group.archived_at = None
+    group.save(update_fields=['is_archived', 'archived_at'])
+    
+    return JsonResponse({
+        'success': True,
+        'is_archived': group.is_archived
+    })
+
+def delete_group(request, link_id):
+    owner = get_owner_from_session(request)
+    group = get_object_or_404(Group, link_id=link_id)
+    
+    if not owner or owner.id != group.creator.id:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    group_name = group.name
+    group.delete()
+    
+    return JsonResponse({
+        'success': True,
+        'group_name': group_name
+    })
+
+def update_scroll_position(request, link_id):
+    """API endpoint to track scroll position and update last_read_message_id"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    group = get_object_or_404(Group, link_id=link_id, is_active=True)
+    session_token = request.session.get('ngl_token')
+    
+    if not session_token:
+        return JsonResponse({'error': 'No session'}, status=401)
+    
+    participant = GroupParticipant.objects.filter(group=group, session_token=session_token).first()
+    if not participant:
+        return JsonResponse({'error': 'Not a participant'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        scroll_position = data.get('scroll_position', 0)
+        
+        if message_id:
+            # Update last_read_message_id to the message the user has scrolled to
+            participant.last_read_message_id = message_id
+            participant.last_scroll_position = scroll_position
+            participant.save(update_fields=['last_read_message_id', 'last_scroll_position'])
+            
+            # Calculate remaining unread messages
+            last_read_msg = group.messages.filter(id=message_id).first()
+            remaining_unread = 0
+            if last_read_msg:
+                remaining_unread = group.messages.filter(created_at__gt=last_read_msg.created_at).count()
+            
+            return JsonResponse({
+                'success': True,
+                'last_read_message_id': message_id,
+                'remaining_unread': remaining_unread
+            })
+        else:
+            # Just update scroll position
+            participant.last_scroll_position = scroll_position
+            participant.save(update_fields=['last_scroll_position'])
+            
+            return JsonResponse({'success': True})
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print(f"[MARA] Error updating scroll position: {e}")
+        return JsonResponse({'error': 'Server error'}, status=500)
+
 def cleanup_inactive_groups():
-    """Delete groups with no activity for more than 7 days"""
+    """Delete groups with no activity for more than 14 days (2 weeks)"""
     from django.utils import timezone
     from datetime import timedelta
     
-    threshold = timezone.now() - timedelta(days=7)
+    threshold = timezone.now() - timedelta(days=14)
     
-    # Groups where the last message is older than 7 days OR no messages and created > 7 days ago
+    # Groups where the last message is older than 14 days OR no messages and created > 14 days ago
     inactive_groups = Group.objects.filter(is_active=True).annotate(
         last_msg=models.Max('messages__created_at')
     ).filter(

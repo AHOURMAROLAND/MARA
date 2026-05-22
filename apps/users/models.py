@@ -62,6 +62,12 @@ class UserProfile(models.Model):
         """Check if user accepts images"""
         return self.content_mode in ('images', 'both')
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['pseudo']),
+            models.Index(fields=['link_id']),
+        ]
+
     def __str__(self):
         return f"@{self.pseudo}"
 

@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Messages archivés — MARA{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-theme-bg">
+
+  <!-- Header sticky -->
+  <div class="bg-theme-surface px-4 pt-12 pb-0 sticky top-0 z-10 shadow-theme border-b border-theme-border">
+    <div class="max-w-md mx-auto">
+
+      <!-- Ligne du haut -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <a href="{% url 'inbox' user.link_id %}" class="text-theme-muted hover:text-mara-pink transition-colors" aria-label="Retour">
+            {% include 'includes/icons/back.html' with class='w-6 h-6' %}
+          </a>
+          {% if user.photo %}
+            <img src="{{ user.photo.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-mara-pink/20"/>
+          {% else %}
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-extrabold bg-mara-gradient">
+              {{ user.pseudo|first|upper }}
+            </div>
+          {% endif %}
+          <span class="font-extrabold text-base text-theme-text">@{{ user.pseudo }}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="{% url 'profile_settings' user.link_id %}" class="text-theme-muted hover:text-mara-pink transition-colors" aria-label="Paramètres du profil">
+            {% include 'includes/icons/settings.html' with class='w-6 h-6' %}
+          </a>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-6 border-b border-theme-border">
+        <a href="{% url 'profile_share' user.link_id %}" class="tab-inactive text-sm">PARTAGER</a>
+        <a href="{% url 'inbox' user.link_id %}" class="tab-inactive text-sm flex items-center gap-1">
+          MESSAGES
+        </a>
+        <a href="{% url 'inbox' user.link_id %}" class="tab-inactive text-sm flex items-center gap-1">
+          GROUPES
+        </a>
+        <span class="tab-active text-sm">ARCHIVÉS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs for Archived Content -->
+  <div class="max-w-md mx-auto mt-4 px-4">
+    <div class="flex gap-4 border-b border-theme-border pb-2">
+      <button onclick="switchArchivedTab('messages')" id="tab-archived-messages" class="tab-active text-sm">MESSAGES</button>
+      <button onclick="switchArchivedTab('groups')" id="tab-archived-groups" class="tab-inactive text-sm">GROUPES</button>
+    </div>
+  </div>
+
+  <!-- Archived Messages List -->
+  <div id="archived-messages-section" class="max-w-md mx-auto mt-2 bg-theme-surface rounded-2xl overflow-hidden shadow-theme border border-theme-border">
+    {% for msg in messages %}
+    <div class="msg-row border-theme-border hover:bg-theme-bg/50 transition-colors px-4 py-3">
+      <div class="flex items-center gap-3">
+        <!-- Contenu texte -->
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-theme-text truncate {% if not msg.is_read %}font-bold{% else %}font-semibold{% endif %}">
+            {% if msg.text %}
+              {{ msg.text|truncatechars:50 }}
+            {% elif msg.has_image %}
+              Image
+            {% else %}
+              Message anonyme
+            {% endif %}
+          </p>
+          <p class="text-xs text-theme-muted mt-0.5">Archivé le {{ msg.archived_at|date:"d/m/Y à H:i" }}</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <form method="POST" action="{% url 'unarchive_message' user.link_id msg.id %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="text-mara-pink hover:text-mara-pink/80 text-xs font-bold px-2 py-1 rounded-lg hover:bg-mara-pink/10 transition-colors">
+              Désarchiver
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 text-theme-muted">
+      <p class="text-5xl mb-4 opacity-20">Boite vide</p>
+      <p class="font-bold text-theme-text opacity-60">Aucun message archivé</p>
+      <p class="text-sm mt-1">Les messages archivés apparaîtront ici</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Archived Groups List -->
+  <div id="archived-groups-section" class="hidden max-w-md mx-auto mt-2 space-y-4 px-4">
+    {% for g in archived_groups %}
+    <div class="bg-theme-surface rounded-2xl p-4 shadow-theme border border-theme-border">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-mara-pink/10 flex items-center justify-center text-mara-pink relative">
+            {% include 'includes/icons/group.html' with class='h-6 w-6' %}
+          </div>
+          <div>
+            <p class="font-extrabold text-theme-text">{{ g.group.name }}</p>
+            <p class="text-[10px] text-theme-muted font-bold uppercase">Archivé le {{ g.group.archived_at|date:"d/m/Y à H:i" }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="{% url 'group_chat' g.group.link_id %}" class="text-mara-pink hover:text-mara-pink/80 text-xs font-bold px-2 py-1 rounded-lg hover:bg-mara-pink/10 transition-colors">
+            Voir
+          </a>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16 text-theme-muted">
+      <p class="text-5xl mb-4 opacity-20">Archive vide</p>
+      <p class="font-bold text-theme-text opacity-60">Aucun groupe archivé</p>
+      <p class="text-sm mt-1">Les groupes archivés apparaîtront ici</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    function switchArchivedTab(tab) {
+      const messagesSection = document.getElementById('archived-messages-section');
+      const groupsSection = document.getElementById('archived-groups-section');
+      const messagesTab = document.getElementById('tab-archived-messages');
+      const groupsTab = document.getElementById('tab-archived-groups');
+
+      if (tab === 'messages') {
+        messagesSection.classList.remove('hidden');
+        groupsSection.classList.add('hidden');
+        messagesTab.className = 'tab-active text-sm';
+        groupsTab.className = 'tab-inactive text-sm';
+      } else {
+        messagesSection.classList.add('hidden');
+        groupsSection.classList.remove('hidden');
+        messagesTab.className = 'tab-inactive text-sm';
+        groupsTab.className = 'tab-active text-sm';
+      }
+    }
+  </script>
+
+  <div class="h-10"></div>
+</div>
+{% endblock %}

@@ -19,22 +19,32 @@
       <a href="/" class="p-2 -ml-2 text-theme-muted hover:text-mara-pink transition-colors" aria-label="Retour à l'accueil">
         {% include 'includes/icons/back.html' with class='h-6 w-6' %}
       </a>
-      <div class="w-10 h-10 rounded-xl bg-theme-bg overflow-hidden border border-theme-border shrink-0">
-        {% if group.image %}
-          <img src="{{ group.image.url }}" class="w-full h-full object-cover" alt="Logo du groupe">
-        {% else %}
-          <div class="w-full h-full flex items-center justify-center text-mara-pink bg-mara-pink/10">
-            {% include 'includes/icons/group.html' with class='h-5 w-5' %}
-          </div>
-        {% endif %}
-      </div>
-      <div class="overflow-hidden">
-        <h1 class="font-extrabold text-theme-text leading-tight truncate">{{ group.name }}</h1>
-        <div class="flex items-center gap-1.5">
-          <span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-          <p class="text-[10px] text-theme-muted font-bold uppercase tracking-wider"><span id="active-count">{{ active_count }}</span> en ligne</p>
+      {% if is_owner %}
+      <a href="{% url 'group_settings' group.link_id %}" class="flex items-center gap-3 hover:bg-theme-bg/50 transition-colors cursor-pointer rounded-xl p-2 -mx-2">
+      {% else %}
+      <div class="flex items-center gap-3">
+      {% endif %}
+        <div class="w-10 h-10 rounded-xl bg-theme-bg overflow-hidden border border-theme-border shrink-0">
+          {% if group.image %}
+            <img src="{{ group.image.url }}" class="w-full h-full object-cover" alt="Logo du groupe">
+          {% else %}
+            <div class="w-full h-full flex items-center justify-center text-mara-pink bg-mara-pink/10">
+              {% include 'includes/icons/group.html' with class='h-5 w-5' %}
+            </div>
+          {% endif %}
         </div>
+        <div class="overflow-hidden">
+          <h1 class="font-extrabold text-theme-text leading-tight truncate">{{ group.name }}</h1>
+          <div class="flex items-center gap-1.5">
+            <span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+            <p class="text-[10px] text-theme-muted font-bold uppercase tracking-wider"><span id="active-count">{{ active_count }}</span> en ligne</p>
+          </div>
+        </div>
+      {% if is_owner %}
+      </a>
+      {% else %}
       </div>
+      {% endif %}
     </div>
     
     <div class="flex items-center gap-2">
@@ -58,7 +68,12 @@
   <!-- Nickname Banner (Small) -->
   <div class="bg-theme-text text-theme-bg text-[10px] py-1.5 px-4 flex justify-between items-center font-bold uppercase tracking-widest shrink-0 opacity-90">
     <div>Ton pseudo : <span id="current-nickname" class="text-mara-pink">{{ participant.nickname }}</span></div>
-    <div class="opacity-30">MARA v2.0</div>
+    <div class="flex items-center gap-2">
+      {% if remaining_unread > 0 %}
+      <span class="bg-mara-pink text-white px-2 py-0.5 rounded-full text-[9px]">{{ remaining_unread }} non lu{{ remaining_unread|pluralize }}</span>
+      {% endif %}
+      <div class="opacity-30">MARA v2.0</div>
+    </div>
   </div>
 
   <!-- Messages List -->
@@ -279,12 +294,84 @@
 
 <script src="{% static 'js/chat.js' %}?v=1.5"></script>
 <script>
+  function copyGroupLink() {
+    const url = window.location.origin + "/groups/g/{{ group.link_id }}/";
+    navigator.clipboard.writeText(url).then(() => {
+      alert("Lien du groupe copié !");
+    });
+  }
+
+
+
   // Initialize MARA Chat
   const maraChat = new MaraChat({
     groupLinkId: "{{ group.link_id }}",
     myToken: "{{ request.session.ngl_token }}",
     lastMessageDate: "{% if messages_list %}{{ messages_list.last.created_at.isoformat }}{% endif %}",
     csrfToken: "{{ csrf_token }}"
+  });
+
+  // Scroll tracking for unread messages
+  let scrollTimeout;
+  const chatContainer = document.getElementById('chat-messages');
+  const firstUnreadIndex = {{ first_unread_index|default:'null' }};
+  const remainingUnread = {{ remaining_unread|default:0 }};
+
+  // Scroll to first unread message if exists
+  if (firstUnreadIndex !== null && chatContainer.children[firstUnreadIndex]) {
+    setTimeout(() => {
+      chatContainer.children[firstUnreadIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 500);
+  }
+
+  // Track scroll position and update last_read_message_id
+  chatContainer.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const visibleMessages = [];
+      const messageElements = chatContainer.querySelectorAll('[id^="msg-"]');
+      
+      messageElements.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+          const messageId = el.id.replace('msg-', '');
+          visibleMessages.push(messageId);
+        }
+      });
+
+      if (visibleMessages.length > 0) {
+        // Get the last visible message
+        const lastVisibleId = visibleMessages[visibleMessages.length - 1];
+        
+        // Send to backend
+        fetch(`/groups/api/g/{{ group.link_id }}/scroll/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({
+            message_id: lastVisibleId,
+            scroll_position: chatContainer.scrollTop
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.remaining_unread !== undefined) {
+            // Update unread count display
+            const unreadBadge = document.querySelector('.bg-mara-pink.text-white.px-2');
+            if (unreadBadge) {
+              if (data.remaining_unread > 0) {
+                unreadBadge.textContent = `${data.remaining_unread} non lu${data.remaining_unread > 1 ? 's' : ''}`;
+              } else {
+                unreadBadge.remove();
+              }
+            }
+          }
+        })
+        .catch(err => console.error('Error updating scroll position:', err));
+      }
+    }, 500); // Debounce scroll events
   });
 </script>
 
