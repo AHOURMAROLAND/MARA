@@ -330,10 +330,12 @@
     scrollTimeout = setTimeout(() => {
       const visibleMessages = [];
       const messageElements = chatContainer.querySelectorAll('[id^="msg-"]');
+      const containerRect = chatContainer.getBoundingClientRect();
       
       messageElements.forEach(el => {
         const rect = el.getBoundingClientRect();
-        if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+        // Check if the message is visible within the chat container
+        if (rect.bottom >= containerRect.top && rect.top <= containerRect.bottom) {
           const messageId = el.id.replace('msg-', '');
           visibleMessages.push(messageId);
         }
