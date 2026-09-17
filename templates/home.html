@@ -1,58 +1,104 @@
 {% extends 'base.html' %}
 
-{% block title %}MARA — Cree ton profil{% endblock %}
+{% block title %}MARA — Bienvenue{% endblock %}
 
 {% block extra_head %}
+<style>
+  /* Splash Overlay */
+  #splash-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #0B0E14;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+  }
+  #splash-screen.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .splash-logo-pulse {
+    animation: maraPulse 2s ease-in-out infinite alternate;
+  }
+  @keyframes maraPulse {
+    0% { transform: scale(0.96); filter: drop-shadow(0 0 15px rgba(255, 69, 101, 0.3)); }
+    100% { transform: scale(1.04); filter: drop-shadow(0 0 35px rgba(255, 128, 56, 0.6)); }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-theme-bg flex flex-col items-center justify-center px-4 py-10">
+<!-- Screen 1: Splash Screen Overlay -->
+<div id="splash-screen">
+  <div class="text-center splash-logo-pulse">
+    <div class="w-24 h-24 rounded-3xl mara-gradient flex items-center justify-center mx-auto shadow-2xl mb-4">
+      <span class="text-white text-4xl font-extrabold tracking-wider">M</span>
+    </div>
+    <h1 class="text-4xl font-extrabold text-mara tracking-tight">MARA</h1>
+    <p class="text-theme-muted text-xs tracking-widest uppercase mt-1 font-semibold">Message At Random Anonymous</p>
+  </div>
+  <div class="mt-8 flex items-center gap-2 text-xs text-theme-muted">
+    <div class="w-2 h-2 rounded-full bg-mara-pink animate-ping"></div>
+    <span>Connexion en cours...</span>
+  </div>
+</div>
 
-  <!-- Logo -->
+<div class="min-h-screen bg-theme-bg flex flex-col items-center justify-center px-4 py-8 relative">
+
+  <!-- Brand Header -->
   <div class="mb-6 text-center">
-    <h1 class="text-5xl font-extrabold text-mara">MARA</h1>
-    <p class="text-theme-muted text-sm mt-1">Message At Random Anonymous</p>
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl mara-gradient shadow-lg mb-2">
+      <span class="text-white text-2xl font-black">M</span>
+    </div>
+    <h1 class="text-3xl font-extrabold text-mara">MARA</h1>
+    <p class="text-theme-muted text-xs">Exprime-toi librement en toute discrétion</p>
   </div>
 
-  <!-- Create Card -->
-  <div id="create-card" class="bg-theme-surface rounded-2xl shadow-theme-lg p-8 w-full max-w-md border border-theme-border">
-    <h2 class="text-xl font-bold text-theme-text mb-1">Cree ton profil</h2>
-    <p class="text-theme-muted text-sm mb-6">Recois des messages anonymes de tes amis</p>
+  <!-- Screen 2: Create Profile Card -->
+  <div id="create-card" class="bg-theme-surface rounded-2xl shadow-theme-lg p-6 sm:p-8 w-full max-w-md border border-theme-border">
+    <div class="mb-5">
+      <h2 class="text-xl font-extrabold text-white">Créer mon profil</h2>
+      <p class="text-theme-muted text-xs mt-1">Reçois des messages anonymes et partage des stories</p>
+    </div>
 
     {% if messages %}
       {% for msg in messages %}
-        <div class="bg-red-500/10 text-red-500 text-sm rounded-lg px-4 py-2 mb-4 border border-red-500/20">{{ msg }}</div>
+        <div class="bg-red-500/10 text-red-400 text-xs rounded-xl px-4 py-3 mb-4 border border-red-500/20 font-medium">{{ msg }}</div>
       {% endfor %}
     {% endif %}
 
     {% if pseudo_taken %}
-      <div class="bg-orange-500/10 text-orange-600 text-sm rounded-lg px-4 py-3 mb-4 border border-orange-500/20">
-        <p class="font-bold mb-2">Le pseudo @{{ typed_pseudo }} est deja pris !</p>
-        <p class="mb-2 text-xs opacity-80">Voici quelques suggestions :</p>
-        <div class="flex flex-wrap gap-2 mb-4">
+      <div class="bg-orange-500/10 text-orange-400 text-xs rounded-xl px-4 py-3 mb-4 border border-orange-500/20">
+        <p class="font-bold mb-1.5">Le pseudo @{{ typed_pseudo }} est déjà pris !</p>
+        <p class="mb-2 text-xs opacity-80">Suggestions disponibles :</p>
+        <div class="flex flex-wrap gap-2 mb-3">
           {% for sug in suggestions %}
-          <button type="button" onclick="document.getElementById('pseudo-input').value='{{ sug }}'" class="bg-theme-surface px-3 py-1.5 rounded-full border border-orange-500/30 text-orange-600 font-bold hover:bg-orange-500/10 transition shadow-sm text-xs">
+          <button type="button" onclick="setPseudo('{{ sug }}')" class="bg-theme-bg px-3 py-1 rounded-full border border-orange-500/40 text-orange-400 font-bold hover:bg-orange-500/20 transition text-xs">
             @{{ sug }}
           </button>
           {% endfor %}
         </div>
-        <div class="border-t border-orange-500/20 pt-3">
-          <p class="text-xs font-bold mb-2">C'est ton compte ?</p>
-          <button type="button" onclick="showLoginForm('{{ typed_pseudo }}')" class="bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-orange-700 w-full text-center transition">
-            Connecte-toi avec ton PIN
-          </button>
-        </div>
+        <button type="button" onclick="showLoginForm('{{ typed_pseudo }}')" class="w-full bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-bold py-2 rounded-lg text-xs transition border border-orange-500/30">
+          C'est ton compte ? Connecte-toi avec ton PIN
+        </button>
       </div>
     {% endif %}
 
-    <form method="POST" action="{% url 'create_profile' %}" enctype="multipart/form-data" class="space-y-4">
+    <form method="POST" action="{% url 'create_profile' %}" enctype="multipart/form-data" class="space-y-4" id="register-form">
       {% csrf_token %}
 
-      <!-- Pseudo -->
+      <!-- Pseudo with Live Availability Check -->
       <div>
-        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Ton pseudo *</label>
-        <div class="flex items-center border border-theme-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-mara-pink/50 transition bg-theme-bg">
-          <span class="px-3 text-theme-muted bg-theme-bg/50 py-3 border-r border-theme-border text-sm">mara.app/u/</span>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs font-semibold text-theme-muted">Ton pseudo unique *</label>
+          <span id="pseudo-status" class="text-[11px] font-semibold text-theme-muted"></span>
+        </div>
+        <div class="flex items-center border border-theme-border rounded-xl overflow-hidden focus-within:border-mara-pink bg-theme-bg transition">
+          <span class="px-3 text-theme-muted bg-white/5 py-3 border-r border-theme-border text-xs font-mono">mara.app/u/</span>
           <input
             id="pseudo-input"
             type="text"
@@ -60,73 +106,112 @@
             value="{{ typed_pseudo|default:'' }}"
             placeholder="tonpseudo"
             required
-            class="flex-1 px-3 py-3 bg-transparent outline-none text-sm text-theme-text"
+            autocomplete="off"
+            class="flex-1 px-3 py-3 bg-transparent outline-none text-sm text-white font-medium placeholder-gray-600"
           />
         </div>
       </div>
 
-      <!-- Code PIN -->
+      <!-- Code PIN (Optionnel ou requis) -->
       <div>
-        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Code PIN (4 chiffres) *</label>
+        <label class="block text-xs font-semibold text-theme-muted mb-1">Code PIN (4 chiffres) *</label>
         <input
+          id="pin-input"
           type="password"
           pattern="[0-9]{4}"
           inputmode="numeric"
           maxlength="4"
           name="pin_code"
-          placeholder="Ex: 1234"
+          placeholder="••••"
           required
-          class="w-full px-4 py-3 bg-theme-bg border border-theme-border text-theme-text rounded-xl outline-none text-sm focus:ring-2 focus:ring-mara-pink/50 text-center tracking-widest font-bold transition"
+          class="w-full px-4 py-3 bg-theme-bg border border-theme-border text-white rounded-xl outline-none text-sm focus:border-mara-pink text-center tracking-[0.5em] font-bold transition"
         />
-        <p class="text-xs text-theme-muted mt-1">Garde-le secret, il te servira a te reconnecter.</p>
+        <p class="text-[11px] text-theme-muted mt-1">Garde-le secret, il permet de sécuriser et restaurer ton compte.</p>
       </div>
 
-      <!-- Photo (facultatif) -->
+      <!-- Photo (Facultatif) with Preview -->
       <div>
-        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Photo de profil <span class="text-theme-muted">(facultatif)</span></label>
-        <input
-          type="file"
-          name="photo"
-          accept="image/*"
-          class="block w-full text-sm text-theme-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-mara-pink/10 file:text-mara-pink hover:file:bg-mara-pink/20 transition"
-        />
+        <label class="block text-xs font-semibold text-theme-muted mb-1">Photo de profil <span class="opacity-60">(facultatif)</span></label>
+        <div class="flex items-center gap-3">
+          <div id="photo-preview-circle" class="w-12 h-12 rounded-full bg-theme-bg border border-theme-border flex items-center justify-center text-theme-muted overflow-hidden flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <input
+            id="photo-input"
+            type="file"
+            name="photo"
+            accept="image/*"
+            class="block w-full text-xs text-theme-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-mara-pink/20 file:text-mara-pink hover:file:bg-mara-pink/30 transition cursor-pointer"
+          />
+        </div>
       </div>
 
-      <button type="submit" class="btn-mara w-full text-white font-bold py-3 rounded-xl text-sm tracking-wide shadow-md hover:opacity-90 transition">
-        Creer mon profil →
+      <button type="submit" class="btn-mara w-full text-white font-bold py-3.5 rounded-xl text-sm tracking-wide shadow-lg shadow-mara-pink/20 hover:opacity-95 transition">
+        Créer mon profil →
       </button>
     </form>
+
+    <!-- Screen 3: Connexion Réseaux Sociaux (Optionnel) -->
+    <div class="mt-6 pt-5 border-t border-theme-border">
+      <div class="text-center mb-3">
+        <span class="text-[11px] uppercase tracking-wider text-theme-muted font-bold">Ou continuer avec</span>
+        <p class="text-[10px] text-theme-muted mt-0.5">Optionnel — votre profil anonyme reste 100% utilisable sans compte social</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2.5">
+        <button type="button" onclick="alert('Connexion Google : Disponible prochainement. Utilisez votre pseudo et code PIN dès maintenant !')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-theme-bg border border-theme-border hover:border-white/20 text-xs font-semibold text-white transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+            <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+            <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.1c0 2.8.7 5.4 1.9 7.8l3.7-2.9z"/>
+            <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/>
+          </svg>
+          Google
+        </button>
+        <button type="button" onclick="alert('Connexion Facebook : Disponible prochainement. Utilisez votre pseudo et code PIN dès maintenant !')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-theme-bg border border-theme-border hover:border-white/20 text-xs font-semibold text-white transition">
+          <svg class="w-4 h-4 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+          Facebook
+        </button>
+      </div>
+    </div>
     
-    <div class="mt-4 text-center">
-      <button type="button" onclick="toggleForms()" class="text-mara-pink text-sm font-bold hover:underline transition">J'ai deja un compte (Connexion)</button>
+    <div class="mt-5 text-center">
+      <button type="button" onclick="toggleForms()" class="text-mara-pink text-xs font-bold hover:underline transition">
+        J'ai déjà un compte → Me connecter
+      </button>
     </div>
   </div>
 
   <!-- Login Card (Hidden by default) -->
-  <div id="login-card" class="bg-theme-surface rounded-2xl shadow-theme-lg p-8 w-full max-w-md hidden border border-theme-border">
-    <h2 class="text-xl font-bold text-theme-text mb-1">Bon retour !</h2>
-    <p class="text-theme-muted text-sm mb-6">Connecte-toi avec ton pseudo et ton code PIN</p>
+  <div id="login-card" class="bg-theme-surface rounded-2xl shadow-theme-lg p-6 sm:p-8 w-full max-w-md hidden border border-theme-border">
+    <div class="mb-5">
+      <h2 class="text-xl font-extrabold text-white">Bon retour !</h2>
+      <p class="text-theme-muted text-xs mt-1">Connecte-toi avec ton pseudo et ton code PIN</p>
+    </div>
 
     <form method="POST" action="{% url 'login_with_pin' %}" class="space-y-4">
       {% csrf_token %}
       
       <div>
-        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Ton pseudo</label>
-        <div class="flex items-center border border-theme-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-mara-pink/50 transition bg-theme-bg">
-          <span class="px-3 text-theme-muted bg-theme-bg/50 py-3 border-r border-theme-border text-sm">@</span>
+        <label class="block text-xs font-semibold text-theme-muted mb-1">Ton pseudo</label>
+        <div class="flex items-center border border-theme-border rounded-xl overflow-hidden focus-within:border-mara-pink bg-theme-bg transition">
+          <span class="px-3 text-theme-muted bg-white/5 py-3 border-r border-theme-border text-xs font-mono">@</span>
           <input
             id="login-pseudo"
             type="text"
             name="pseudo"
             placeholder="tonpseudo"
             required
-            class="flex-1 px-3 py-3 bg-transparent outline-none text-sm text-theme-text"
+            class="flex-1 px-3 py-3 bg-transparent outline-none text-sm text-white font-medium"
           />
         </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-theme-text opacity-70 mb-1">Code PIN</label>
+        <label class="block text-xs font-semibold text-theme-muted mb-1">Code PIN (4 chiffres)</label>
         <input
           type="password"
           pattern="[0-9]{4}"
@@ -135,48 +220,128 @@
           name="pin_code"
           placeholder="••••"
           required
-          class="w-full px-4 py-3 bg-theme-bg border border-theme-border text-theme-text rounded-xl outline-none text-sm focus:ring-2 focus:ring-mara-pink/50 text-center tracking-widest font-bold transition"
+          class="w-full px-4 py-3 bg-theme-bg border border-theme-border text-white rounded-xl outline-none text-sm focus:border-mara-pink text-center tracking-[0.5em] font-bold transition"
         />
       </div>
 
-      <button type="submit" class="bg-theme-text text-theme-bg w-full font-bold py-3 rounded-xl text-sm tracking-wide shadow-md hover:opacity-80 transition mt-2">
+      <button type="submit" class="btn-mara w-full text-white font-bold py-3.5 rounded-xl text-sm tracking-wide shadow-md hover:opacity-95 transition mt-2">
         Me connecter
       </button>
     </form>
     
-    <div class="mt-4 text-center">
-      <button type="button" onclick="toggleForms()" class="text-theme-muted text-sm font-bold hover:underline transition">← Retour a la creation</button>
+    <div class="mt-5 text-center">
+      <button type="button" onclick="toggleForms()" class="text-theme-muted text-xs font-bold hover:text-white transition">
+        ← Créer un nouveau profil
+      </button>
     </div>
   </div>
 
-  <p class="text-theme-muted text-xs mt-6 text-center">En continuant, tu acceptes nos <br/><a href="{% url 'terms' %}" class="underline hover:text-mara-pink transition">Conditions d'utilisation</a> · <a href="{% url 'privacy' %}" class="underline hover:text-mara-pink transition">Confidentialité</a></p>
+  <p class="text-theme-muted text-[11px] mt-6 text-center leading-relaxed">
+    En continuant, tu acceptes nos <br/>
+    <a href="{% url 'terms' %}" class="underline hover:text-mara-pink transition">Conditions d'utilisation</a> · 
+    <a href="{% url 'privacy' %}" class="underline hover:text-mara-pink transition">Confidentialité</a>
+  </p>
 </div>
 
-  <script>
-    function toggleForms() {
-      const createCard = document.getElementById('create-card');
-      const loginCard = document.getElementById('login-card');
-      
-      if (createCard.classList.contains('hidden')) {
-        createCard.classList.remove('hidden');
-        loginCard.classList.add('hidden');
-      } else {
-        createCard.classList.add('hidden');
-        loginCard.classList.remove('hidden');
+<script>
+  // Auto-reconnect & Splash Screen logic
+  document.addEventListener('DOMContentLoaded', async () => {
+    const splash = document.getElementById('splash-screen');
+    const reconnectToken = localStorage.getItem('mara_reconnect_token');
+
+    if (reconnectToken) {
+      try {
+        const res = await fetch('/api/v1/auth/reconnect/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reconnect_token: reconnectToken })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.href = '/discussions/';
+          return;
+        }
+      } catch (err) {
+        console.warn('Auto-reconnect failed', err);
       }
     }
 
-    function showLoginForm(pseudo) {
-      document.getElementById('login-pseudo').value = pseudo;
-      
-      const createCard = document.getElementById('create-card');
-      const loginCard = document.getElementById('login-card');
-      
+    // Dismiss splash after a brief smooth animation
+    setTimeout(() => {
+      splash.classList.add('fade-out');
+    }, 700);
+  });
+
+  // Toggle Login/Register Card
+  function toggleForms() {
+    const createCard = document.getElementById('create-card');
+    const loginCard = document.getElementById('login-card');
+    
+    if (createCard.classList.contains('hidden')) {
+      createCard.classList.remove('hidden');
+      loginCard.classList.add('hidden');
+    } else {
       createCard.classList.add('hidden');
       loginCard.classList.remove('hidden');
     }
-  </script>
+  }
 
-  <p class="text-gray-300 text-xs mt-6 text-center">En continuant, tu acceptes nos <br/><a href="{% url 'terms' %}" class="underline hover:text-pink-400 transition">Conditions d'utilisation</a> · <a href="{% url 'privacy' %}" class="underline hover:text-pink-400 transition">Confidentialité</a></p>
-</div>
+  function showLoginForm(pseudo) {
+    document.getElementById('login-pseudo').value = pseudo;
+    const createCard = document.getElementById('create-card');
+    const loginCard = document.getElementById('login-card');
+    createCard.classList.add('hidden');
+    loginCard.classList.remove('hidden');
+  }
+
+  function setPseudo(val) {
+    const input = document.getElementById('pseudo-input');
+    input.value = val;
+    checkPseudoLive(val);
+  }
+
+  // Live Pseudo Availability Check
+  let debounceTimer;
+  const pseudoInput = document.getElementById('pseudo-input');
+  const pseudoStatus = document.getElementById('pseudo-status');
+
+  pseudoInput?.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const val = e.target.value.trim().toLowerCase();
+    if (val.length < 2) {
+      pseudoStatus.textContent = '';
+      return;
+    }
+    pseudoStatus.innerHTML = '<span class="text-gray-400">Vérification...</span>';
+    debounceTimer = setTimeout(() => checkPseudoLive(val), 350);
+  });
+
+  async function checkPseudoLive(pseudo) {
+    try {
+      const res = await fetch(`/api/v1/auth/check-pseudo/?pseudo=${encodeURIComponent(pseudo)}`);
+      const data = await res.json();
+      if (data.available) {
+        pseudoStatus.innerHTML = '<span class="text-emerald-400 font-bold">✓ Disponible</span>';
+      } else {
+        pseudoStatus.innerHTML = '<span class="text-rose-400 font-bold">✗ Déjà pris</span>';
+      }
+    } catch (e) {
+      pseudoStatus.textContent = '';
+    }
+  }
+
+  // Instant Photo Preview
+  document.getElementById('photo-input')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const preview = document.getElementById('photo-preview-circle');
+        preview.innerHTML = `<img src="${evt.target.result}" class="w-full h-full object-cover" />`;
+      }
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
 {% endblock %}
+

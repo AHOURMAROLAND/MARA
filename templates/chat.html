@@ -1,0 +1,532 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Discussion avec @{{ other_user.pseudo }} — MARA{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Waveform animation */
+  .voice-bar {
+    width: 3px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 2px;
+    animation: voiceWave 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes voiceWave {
+    0% { height: 4px; }
+    100% { height: 20px; }
+  }
+
+  /* Progress ring */
+  .progress-ring-circle {
+    transition: stroke-dashoffset 0.35s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  /* Modal animation */
+  .context-modal-backdrop {
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-screen bg-[#0B0E14] text-white selection:bg-mara-pink/20 relative">
+
+  <!-- Header -->
+  <header class="flex items-center justify-between px-4 py-3 bg-[#0B0E14]/95 backdrop-blur-xl border-b border-white/5 z-20 flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <a href="/discussions/" class="w-10 h-10 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-colors" title="Retour">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </a>
+
+      <a href="/u/{{ other_user.link_id }}/" class="flex items-center gap-2.5 group">
+        <div class="story-ring-active flex-shrink-0">
+          {% if other_user.photo %}
+            <img src="{{ other_user.photo.url }}" class="w-10 h-10 rounded-full object-cover border-2 border-[#0B0E14]" alt="@{{ other_user.pseudo }}" />
+          {% else %}
+            <div class="w-10 h-10 rounded-full bg-[#161D2B] border-2 border-[#0B0E14] flex items-center justify-center text-white text-xs font-extrabold">
+              {{ other_user.pseudo|first|upper }}
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          <h1 class="text-sm font-bold text-white group-hover:text-mara-pink transition-colors">@{{ other_user.pseudo }}</h1>
+          <p id="chat-status" class="text-[10px] text-green-400 font-medium flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> En ligne
+          </p>
+        </div>
+      </a>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="/u/{{ other_user.link_id }}/qr/" class="w-10 h-10 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-colors" title="QR Code">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Messages List -->
+  <main class="flex-1 overflow-y-auto p-4 space-y-3 max-w-lg mx-auto w-full" id="messages-container">
+    
+    <div class="text-center py-2">
+      <span class="px-3 py-1 rounded-full text-[10px] font-bold text-theme-muted bg-[#161D2B] border border-white/5">
+        🔒 Discussion directe 1-à-1 sécurisée
+      </span>
+    </div>
+
+    {% for msg in messages %}
+      {% if msg.sender_id == user.id %}
+        <!-- User Bubble (Me) -->
+        <div class="bubble-me message-item cursor-pointer" data-id="{{ msg.id }}" data-text="{{ msg.text|default:'' }}" oncontextmenu="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', true)">
+          {% if msg.media_file %}
+            <div class="relative rounded-xl overflow-hidden mb-2">
+              <img src="{{ msg.media_file.url }}" class="rounded-xl max-h-64 w-full object-cover border border-white/20" alt="" />
+            </div>
+          {% endif %}
+          {% if msg.text %}
+            <p class="text-sm font-medium leading-relaxed select-text">{{ msg.text }}</p>
+          {% endif %}
+          <div class="flex items-center justify-end gap-1 bubble-time">
+            <span>{{ msg.created_at|date:"H:i" }}</span>
+            <span class="text-white/80 font-bold">✓✓</span>
+          </div>
+        </div>
+      {% else %}
+        <!-- Friend Bubble (Other) -->
+        <div class="bubble-anonymous message-item cursor-pointer" data-id="{{ msg.id }}" data-text="{{ msg.text|default:'' }}" oncontextmenu="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', false)">
+          {% if msg.media_file %}
+            <div class="relative rounded-xl overflow-hidden mb-2">
+              <img src="{{ msg.media_file.url }}" class="rounded-xl max-h-64 w-full object-cover border border-white/10" alt="" />
+            </div>
+          {% endif %}
+          {% if msg.text %}
+            <p class="text-sm font-medium leading-relaxed select-text">{{ msg.text }}</p>
+          {% endif %}
+          <div class="bubble-time">{{ msg.created_at|date:"H:i" }}</div>
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Live socket incoming -->
+    <div id="live-chat-messages" class="space-y-3"></div>
+
+    <!-- Upload Progress Indicator Component -->
+    <div id="upload-progress-container" class="hidden flex items-center gap-3 bg-[#161D2B] p-3 rounded-2xl border border-white/10 max-w-xs mx-auto">
+      <div class="relative w-10 h-10 flex items-center justify-center">
+        <svg class="w-10 h-10">
+          <circle stroke="rgba(255,255,255,0.1)" stroke-width="3" fill="transparent" r="16" cx="20" cy="20"/>
+          <circle id="upload-circle" class="progress-ring-circle" stroke="#FF4565" stroke-width="3" stroke-dasharray="100.5" stroke-dashoffset="100.5" fill="transparent" r="16" cx="20" cy="20"/>
+        </svg>
+        <span id="upload-percent" class="absolute text-[10px] font-bold text-white">0%</span>
+      </div>
+      <div class="text-xs">
+        <p class="font-bold text-white">Envoi du média...</p>
+        <p class="text-theme-muted text-[10px]">Traitement en cours</p>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div id="typing-indicator" class="hidden text-xs text-theme-muted italic flex items-center gap-1.5 pl-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-mara-pink animate-bounce"></span>
+      <span id="typing-text">@{{ other_user.pseudo }} est en train d'écrire...</span>
+    </div>
+
+  </main>
+
+  <!-- Voice Recording Overlay Bar (when recording) -->
+  <div id="voice-record-bar" class="hidden p-3 bg-[#111622] border-t border-mara-pink/30 flex items-center justify-between gap-3 z-30">
+    <div class="flex items-center gap-2">
+      <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+      <span id="voice-timer" class="text-xs font-mono font-bold text-white">00:00</span>
+      <div class="flex items-center gap-1 h-6 ml-2">
+        <span class="voice-bar" style="animation-delay: 0.1s"></span>
+        <span class="voice-bar" style="animation-delay: 0.3s"></span>
+        <span class="voice-bar" style="animation-delay: 0.2s"></span>
+        <span class="voice-bar" style="animation-delay: 0.4s"></span>
+        <span class="voice-bar" style="animation-delay: 0.15s"></span>
+      </div>
+    </div>
+    <div class="text-xs text-theme-muted">Glisser pour annuler ✕</div>
+    <button type="button" onclick="cancelVoiceRecording()" class="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/30 transition">
+      Annuler
+    </button>
+    <button type="button" onclick="sendVoiceRecording()" class="btn-mara text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md">
+      Envoyer
+    </button>
+  </div>
+
+  <!-- Normal Input Bar -->
+  <footer id="chat-input-bar" class="p-3 bg-[#0B0E14] border-t border-white/5 z-20 flex-shrink-0">
+    <form id="direct-chat-form" onsubmit="handleDirectSend(event)" class="max-w-lg mx-auto flex items-center gap-2">
+      {% csrf_token %}
+      
+      <!-- Attachment button (Photo/Vidéo/Document) -->
+      <label for="media-input" class="w-11 h-11 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-theme-muted hover:text-white cursor-pointer transition-colors" title="Joindre un fichier (photo, vidéo, doc)">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+        <input type="file" id="media-input" name="media" accept="image/*,video/*" class="hidden" onchange="handleMediaUpload(this)" />
+      </label>
+
+      <!-- Text input -->
+      <input
+        type="text"
+        id="direct-message-input"
+        placeholder="Écrire à @{{ other_user.pseudo }}..."
+        autocomplete="off"
+        oninput="handleTyping()"
+        class="flex-1 bg-[#161D2B] border border-white/10 text-white text-sm rounded-full px-5 py-3 outline-none focus:border-mara-pink/50 placeholder:text-theme-muted transition-colors"
+      />
+
+      <!-- Voice note mic button -->
+      <button
+        type="button"
+        id="mic-btn"
+        onclick="startVoiceRecording()"
+        class="w-11 h-11 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-theme-muted hover:text-white hover:border-mara-pink/50 transition-colors"
+        title="Message vocal (micro)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+        </svg>
+      </button>
+
+      <!-- Send button -->
+      <button
+        type="submit"
+        class="w-11 h-11 rounded-full bg-mara text-white flex items-center justify-center flex-shrink-0 shadow-lg hover:scale-105 active:scale-95 transition-all"
+        title="Envoyer"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transform rotate-45 -ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+      </button>
+    </form>
+  </footer>
+
+  <!-- Modal: Context Menu Appui Long sur un message -->
+  <div id="message-context-modal" class="hidden fixed inset-0 z-50 context-modal-backdrop flex items-end sm:items-center justify-center p-4" onclick="closeContextMenu(event)">
+    <div class="bg-[#161D2B] border border-white/10 rounded-2xl w-full max-w-sm p-4 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      
+      <!-- Reactions emoji bar -->
+      <div class="flex items-center justify-around py-2 px-1 bg-[#0B0E14] rounded-xl border border-white/5 text-xl">
+        <button type="button" onclick="sendReaction('❤️')" class="hover:scale-125 transition-transform">❤️</button>
+        <button type="button" onclick="sendReaction('🔥')" class="hover:scale-125 transition-transform">🔥</button>
+        <button type="button" onclick="sendReaction('😂')" class="hover:scale-125 transition-transform">😂</button>
+        <button type="button" onclick="sendReaction('😮')" class="hover:scale-125 transition-transform">😮</button>
+        <button type="button" onclick="sendReaction('😢')" class="hover:scale-125 transition-transform">😢</button>
+        <button type="button" onclick="sendReaction('🙏')" class="hover:scale-125 transition-transform">🙏</button>
+      </div>
+
+      <!-- Action items -->
+      <div class="divide-y divide-white/5 text-sm font-semibold">
+        <button type="button" onclick="actionReply()" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-white hover:bg-white/5 rounded-lg transition">
+          <span>↩️</span> Répondre
+        </button>
+        <button type="button" onclick="actionCopy()" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-white hover:bg-white/5 rounded-lg transition">
+          <span>📋</span> Copier le texte
+        </button>
+        <button type="button" onclick="actionPin()" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-white hover:bg-white/5 rounded-lg transition">
+          <span>📌</span> Épingler le message
+        </button>
+        <button type="button" onclick="actionForward()" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-white hover:bg-white/5 rounded-lg transition">
+          <span>➡️</span> Transférer
+        </button>
+        <button type="button" id="modal-delete-btn" onclick="actionDelete()" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-rose-400 hover:bg-rose-500/10 rounded-lg transition">
+          <span>🗑️</span> Supprimer le message
+        </button>
+      </div>
+
+      <button type="button" onclick="closeContextMenu()" class="w-full py-2.5 rounded-xl bg-white/5 text-xs font-bold text-theme-muted hover:text-white transition">
+        Fermer
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const conversationId = "{{ conversation.id }}";
+  const myUserId = "{{ user.id }}";
+  const myPseudo = "{{ user.pseudo }}";
+
+  let wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  let wsUrl = wsProtocol + window.location.host + '/ws/chat/' + conversationId + '/';
+  let chatSocket = null;
+  let typingTimeout = null;
+
+  // Selected message for context menu
+  let activeContextMessageId = null;
+  let activeContextMessageText = '';
+  let activeContextIsMe = false;
+
+  function initChatSocket() {
+    try {
+      chatSocket = new WebSocket(wsUrl);
+      chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'new_message') {
+          appendChatMessage(data.message);
+        } else if (data.type === 'typing') {
+          if (data.sender_id !== myUserId) {
+            showTyping();
+          }
+        }
+      };
+      chatSocket.onclose = function() {
+        setTimeout(initChatSocket, 3000);
+      };
+    } catch(err) {
+      console.warn('[MARA Chat WS] Error:', err);
+    }
+  }
+  initChatSocket();
+
+  function appendChatMessage(msg) {
+    const isMe = (msg.sender_id === myUserId);
+    const container = document.getElementById('live-chat-messages');
+    const bubble = document.createElement('div');
+    bubble.className = isMe ? 'bubble-me message-item cursor-pointer' : 'bubble-anonymous message-item cursor-pointer';
+    bubble.dataset.id = msg.id;
+    bubble.dataset.text = msg.text || '';
+    bubble.oncontextmenu = (e) => openContextMenu(e, msg.id, msg.text, isMe);
+
+    let mediaHtml = '';
+    if (msg.media_url) {
+      mediaHtml = `<img src="${msg.media_url}" class="rounded-xl max-h-64 w-full object-cover mb-2 border border-white/10" alt="" />`;
+    }
+
+    bubble.innerHTML = `
+      ${mediaHtml}
+      <p class="text-sm font-medium leading-relaxed select-text">${msg.text || ''}</p>
+      <div class="bubble-time flex items-center justify-end gap-1">
+        <span>${msg.created_at || 'À l\'instant'}</span>
+        ${isMe ? '<span class="text-white/80 font-bold">✓✓</span>' : ''}
+      </div>
+    `;
+    container.appendChild(bubble);
+    scrollBottom();
+  }
+
+  function handleDirectSend(e) {
+    e.preventDefault();
+    const input = document.getElementById('direct-message-input');
+    const text = (input.value || '').trim();
+    if (!text) return;
+
+    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+      chatSocket.send(JSON.stringify({
+        type: 'chat_message',
+        sender_id: myUserId,
+        message: text
+      }));
+      input.value = '';
+    } else {
+      // Fallback API POST
+      fetch(`/api/v1/conversations/${conversationId}/send/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ text: text })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          appendChatMessage(res.message);
+          input.value = '';
+        }
+      });
+    }
+  }
+
+  // Media upload simulation with progress circle
+  function handleMediaUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const progressContainer = document.getElementById('upload-progress-container');
+    const circle = document.getElementById('upload-circle');
+    const percentText = document.getElementById('upload-percent');
+
+    progressContainer.classList.remove('hidden');
+    let percent = 0;
+    const interval = setInterval(() => {
+      percent += 15;
+      if (percent > 100) {
+        percent = 100;
+        clearInterval(interval);
+        setTimeout(() => {
+          progressContainer.classList.add('hidden');
+          // Add uploaded message bubble
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            appendChatMessage({
+              sender_id: myUserId,
+              media_url: evt.target.result,
+              text: 'Photo partagée 📸',
+              created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+          };
+          reader.readAsDataURL(file);
+        }, 500);
+      }
+      const offset = 100.5 - (percent / 100 * 100.5);
+      circle.style.strokeDashoffset = offset;
+      percentText.textContent = `${percent}%`;
+    }, 150);
+  }
+
+  // Voice recording mock with wave preview
+  let recordTimerInterval = null;
+  let recordSeconds = 0;
+
+  function startVoiceRecording() {
+    document.getElementById('voice-record-bar').classList.remove('hidden');
+    document.getElementById('chat-input-bar').classList.add('hidden');
+    recordSeconds = 0;
+    recordTimerInterval = setInterval(() => {
+      recordSeconds++;
+      const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+      const secs = String(recordSeconds % 60).padStart(2, '0');
+      document.getElementById('voice-timer').textContent = `${mins}:${secs}`;
+    }, 1000);
+  }
+
+  function cancelVoiceRecording() {
+    clearInterval(recordTimerInterval);
+    document.getElementById('voice-record-bar').classList.add('hidden');
+    document.getElementById('chat-input-bar').classList.remove('hidden');
+  }
+
+  function sendVoiceRecording() {
+    clearInterval(recordTimerInterval);
+    document.getElementById('voice-record-bar').classList.add('hidden');
+    document.getElementById('chat-input-bar').classList.remove('hidden');
+    
+    // Add voice message bubble
+    const container = document.getElementById('live-chat-messages');
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble-me message-item';
+    bubble.innerHTML = `
+      <div class="flex items-center gap-3 py-1">
+        <button type="button" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white">▶</button>
+        <div class="flex-1 flex items-center gap-1">
+          <div class="w-full bg-white/30 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-white h-full w-1/3"></div>
+          </div>
+        </div>
+        <span class="text-[10px] font-mono text-white/80">${document.getElementById('voice-timer').textContent}</span>
+      </div>
+      <div class="bubble-time flex items-center justify-end gap-1">
+        <span>À l'instant</span>
+        <span class="text-white/80 font-bold">✓✓</span>
+      </div>
+    `;
+    container.appendChild(bubble);
+    scrollBottom();
+  }
+
+  // Long-press Context Menu Functions
+  function openContextMenu(e, msgId, text, isMe) {
+    e.preventDefault();
+    activeContextMessageId = msgId;
+    activeContextMessageText = text;
+    activeContextIsMe = isMe;
+
+    const modal = document.getElementById('message-context-modal');
+    modal.classList.remove('hidden');
+  }
+
+  function closeContextMenu(e) {
+    document.getElementById('message-context-modal').classList.add('hidden');
+  }
+
+  function sendReaction(emoji) {
+    closeContextMenu();
+    appendChatMessage({
+      sender_id: myUserId,
+      text: `Réaction : ${emoji}`,
+      created_at: 'À l\'instant'
+    });
+  }
+
+  function actionCopy() {
+    if (activeContextMessageText) {
+      navigator.clipboard.writeText(activeContextMessageText);
+      alert('Texte copié dans le presse-papier !');
+    }
+    closeContextMenu();
+  }
+
+  function actionReply() {
+    closeContextMenu();
+    const input = document.getElementById('direct-message-input');
+    input.value = `Rep: "${activeContextMessageText}" > `;
+    input.focus();
+  }
+
+  function actionPin() {
+    closeContextMenu();
+    alert('Message épinglé en haut de la conversation !');
+  }
+
+  function actionForward() {
+    closeContextMenu();
+    alert('Transférer vers un autre contact...');
+  }
+
+  function actionDelete() {
+    closeContextMenu();
+    if (confirm('Voulez-vous supprimer ce message ?')) {
+      fetch('/api/v1/messages/action/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          message_id: activeContextMessageId
+        })
+      });
+      alert('Message supprimé.');
+    }
+  }
+
+  function handleTyping() {
+    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+      chatSocket.send(JSON.stringify({
+        type: 'typing',
+        sender_id: myUserId,
+        pseudo: myPseudo
+      }));
+    }
+  }
+
+  function showTyping() {
+    const el = document.getElementById('typing-indicator');
+    el.classList.remove('hidden');
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      el.classList.add('hidden');
+    }, 2500);
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    const c = document.getElementById('messages-container');
+    c.scrollTop = c.scrollHeight;
+  }
+  scrollBottom();
+</script>
+{% endblock %}
+

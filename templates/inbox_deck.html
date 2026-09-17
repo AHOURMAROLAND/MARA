@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Boîte de réception anonyme — MARA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-[#0B0E14] text-white flex flex-col justify-between pb-10">
+
+  <!-- Top Header -->
+  <header class="flex items-center justify-between px-5 pt-8 pb-4 border-b border-white/5">
+    <a href="/discussions/" class="w-10 h-10 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-colors" title="Retour">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+    </a>
+
+    <div class="text-center">
+      <h1 class="text-sm font-extrabold text-white">Messages anonymes</h1>
+      <p id="deck-counter" class="text-[11px] text-theme-muted font-bold">1 sur {{ messages|length }}</p>
+    </div>
+
+    <a href="{% url 'archived_messages' user.link_id %}" class="w-10 h-10 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-theme-muted hover:text-white transition-colors" title="Archives">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+      </svg>
+    </a>
+  </header>
+
+  <!-- Swipeable Deck Viewport -->
+  <main class="max-w-md mx-auto px-4 w-full flex-1 flex flex-col justify-center my-4 relative" id="deck-container">
+    
+    {% for msg in messages %}
+      <div class="deck-card absolute inset-x-4 top-1/2 -translate-y-1/2 transition-all duration-300 {% if forloop.first %}opacity-100 scale-100 z-20{% else %}opacity-0 scale-95 pointer-events-none z-10{% endif %}"
+           id="card-{{ forloop.counter0 }}"
+           data-id="{{ msg.id }}"
+           data-index="{{ forloop.counter0 }}">
+
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-white/5">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-mara-pink"></span>
+            <span class="text-xs font-bold text-white uppercase tracking-wider">Message secret</span>
+          </div>
+          <span class="text-[11px] text-theme-muted font-semibold">{{ msg.created_at|date:"d/m à H:i" }}</span>
+        </div>
+
+        <!-- Content -->
+        <div class="py-4 min-h-[160px] flex flex-col justify-center text-center">
+          {% if msg.image %}
+            <img src="{{ msg.image.url }}" class="rounded-2xl max-h-56 object-cover mx-auto mb-3 border border-white/10" alt="Image" />
+          {% endif %}
+          
+          <p class="text-lg md:text-xl font-extrabold text-white leading-snug">
+            {{ msg.text|default:"📸 Image anonyme reçue !" }}
+          </p>
+        </div>
+
+        <!-- Watermark / Footer of card -->
+        <div class="flex items-center justify-between pt-4 mt-2 border-t border-white/5 text-[11px] text-theme-muted">
+          <span>Envoyé via <strong>MARA</strong></span>
+          <span class="text-mara-pink font-bold">100% anonyme</span>
+        </div>
+
+        <!-- Action Pills Bar -->
+        <div class="grid grid-cols-2 gap-2.5 mt-6">
+          <a href="{% url 'create_or_open_thread' msg.id %}" class="btn-mara py-3 rounded-2xl text-xs font-bold gap-1.5 shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>Répondre</span>
+          </a>
+
+          <button onclick="repostToStory('{{ msg.id }}')" class="btn-dark py-3 rounded-2xl text-xs font-bold gap-1.5 border-mara-pink/30 hover:bg-mara-pink/10 text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-mara-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" stroke-dasharray="4 2" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+            </svg>
+            <span>En Story</span>
+          </button>
+        </div>
+
+      </div>
+    {% empty %}
+      <div class="text-center py-16 text-theme-muted">
+        <div class="w-16 h-16 rounded-full bg-[#161D2B] flex items-center justify-center mx-auto mb-3 text-3xl">
+          📭
+        </div>
+        <h3 class="text-base font-extrabold text-white mb-1">Boîte de réception vide</h3>
+        <p class="text-xs text-theme-muted max-w-xs mx-auto mb-6">Partage ton lien pour recevoir tes premiers messages anonymes !</p>
+        <a href="{% url 'public_profile' user.link_id %}" class="btn-mara py-3 px-6 rounded-2xl text-xs font-bold shadow-lg">
+          Partager mon lien
+        </a>
+      </div>
+    {% endfor %}
+
+  </main>
+
+  <!-- Bottom Navigation Deck Controls -->
+  {% if messages %}
+  <footer class="max-w-md mx-auto px-6 w-full flex items-center justify-between pt-4">
+    <button onclick="prevCard()" id="btn-prev-deck" class="btn-dark py-3 px-5 rounded-2xl text-xs font-bold gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+      <span>Précédent</span>
+    </button>
+
+    <button onclick="nextCard()" id="btn-next-deck" class="btn-mara py-3 px-6 rounded-2xl text-xs font-bold gap-2">
+      <span>Suivant</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  </footer>
+  {% endif %}
+
+</div>
+
+<script>
+  const totalCards = {{ messages|length }};
+  let currentCardIndex = 0;
+
+  function showCard(index) {
+    if (index < 0) index = 0;
+    if (index >= totalCards) index = totalCards - 1;
+
+    currentCardIndex = index;
+
+    for (let i = 0; i < totalCards; i++) {
+      const card = document.getElementById(`card-${i}`);
+      if (!card) continue;
+      if (i === currentCardIndex) {
+        card.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+        card.classList.add('opacity-100', 'scale-100', 'z-20');
+      } else {
+        card.classList.remove('opacity-100', 'scale-100', 'z-20');
+        card.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+      }
+    }
+
+    const counter = document.getElementById('deck-counter');
+    if (counter && totalCards > 0) {
+      counter.innerText = `${currentCardIndex + 1} sur ${totalCards}`;
+    }
+    // Swipe gesture support
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const deck = document.getElementById('deck-container');
+
+    deck?.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    deck?.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > 50) {
+        nextCard(); // Swipe left -> Next
+      } else if (touchEndX - touchStartX > 50) {
+        prevCard(); // Swipe right -> Prev
+      }
+    }, { passive: true });
+  }
+
+  function nextCard() {
+    if (currentCardIndex < totalCards - 1) {
+      showCard(currentCardIndex + 1);
+    } else {
+      showToast("Tous les nouveaux messages ont été traités ! 🎉", "success");
+    }
+  }
+
+  function prevCard() {
+    if (currentCardIndex > 0) {
+      showCard(currentCardIndex - 1);
+    }
+  }
+
+  function repostToStory(messageId) {
+    fetch(`/api/v1/inbox/repost-story/${messageId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      }
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast("Ajouté en Story avec succès ! ✨", "success");
+      } else {
+        showToast(res.error || "Impossible d'ajouter en story", "error");
+      }
+    });
+  }
+</script>
+{% endblock %}

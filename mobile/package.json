@@ -1,0 +1,29 @@
+{
+  "name": "mara-mobile",
+  "version": "1.0.0",
+  "description": "MARA Mobile Native App (Android & iOS via Capacitor)",
+  "main": "index.js",
+  "scripts": {
+    "cap:sync": "npx cap sync",
+    "cap:build:android": "npx cap sync android && npx cap open android",
+    "cap:build:ios": "npx cap sync ios && npx cap open ios",
+    "cap:resources": "npx @capacitor/assets generate"
+  },
+  "dependencies": {
+    "@capacitor-community/barcode-scanner": "^4.0.1",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/camera": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/push-notifications": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.0.0"
+  },
+  "author": "MARA Team",
+  "license": "UNLICENSED"
+}

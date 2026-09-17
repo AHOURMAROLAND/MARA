@@ -42,7 +42,7 @@ def generate_pseudo_suggestions(base_pseudo):
 def home(request):
     owner = get_owner_from_session(request)
     if owner:
-        return redirect('inbox', link_id=owner.link_id)
+        return redirect('discussions')
     return render(request, 'home.html')
 
 
@@ -81,7 +81,7 @@ def create_profile(request):
         create_session(request, user=user, session_type='owner')
         request.session.modified = True
         request.session.save()
-        return redirect('inbox', link_id=link_id)
+        return redirect('discussions')
 
     return redirect('home')
 
@@ -112,7 +112,7 @@ def login_with_pin(request):
             create_session(request, user=user, session_type='owner')
             request.session.modified = True
             request.session.save()
-            return redirect('inbox', link_id=user.link_id)
+            return redirect('discussions')
             
         except UserProfile.DoesNotExist:
             messages.error(request, 'Identifiants incorrects.')
@@ -125,16 +125,71 @@ def profile_share(request, link_id):
     owner = get_owner_from_session(request)
     user = get_object_or_404(UserProfile, link_id=link_id)
 
-    if not owner or owner.link_id != link_id:
-        return redirect('send_message', link_id=link_id)
+    is_owner = (owner and owner.id == user.id)
+    is_friend = False
+    pending_sent = False
+    pending_received = False
+    conv_id = None
+    mutual_friends = []
 
-    share_url = request.build_absolute_uri(f'/m/send/{link_id}/')
+    if owner and not is_owner:
+        from .models import Friendship, Invitation
+        from apps.inbox.models import Conversation
+        from django.db.models import Q
+
+        is_friend = owner.is_friend_with(user)
+        if not is_friend:
+            pending_sent = Invitation.objects.filter(from_user=owner, to_user=user, status='pending').exists()
+            pending_received = Invitation.objects.filter(from_user=user, to_user=owner, status='pending').exists()
+        else:
+            conv = Conversation.objects.filter(
+                (Q(user1=owner) & Q(user2=user)) | (Q(user1=user) & Q(user2=owner))
+            ).first()
+            if conv:
+                conv_id = str(conv.id)
+
+        # Mutual friends
+        owner_friends = set(owner.get_friends().values_list('id', flat=True))
+        user_friends = set(user.get_friends().values_list('id', flat=True))
+        mutual_ids = owner_friends.intersection(user_friends)
+        mutual_friends = list(UserProfile.objects.filter(id__in=mutual_ids)[:3])
+
+    share_url = request.build_absolute_uri(f'/m/send/{user.link_id}/')
+    profile_url = request.build_absolute_uri(f'/u/{user.link_id}/')
     vapid_public_key = getattr(settings, 'VAPID_PUBLIC_KEY', '')
+
     return render(request, 'profile_share.html', {
-        'user': user,
+        'target_user': user,
+        'user': owner,
+        'is_owner': is_owner,
+        'is_friend': is_friend,
+        'pending_sent': pending_sent,
+        'pending_received': pending_received,
+        'conversation_id': conv_id,
+        'mutual_friends': mutual_friends,
         'share_url': share_url,
+        'profile_url': profile_url,
         'VAPID_PUBLIC_KEY': vapid_public_key,
+        'active_tab': 'profile' if is_owner else 'discussions',
     })
+
+
+def profile_qr_view(request, link_id):
+    """Dedicated screen to view and share a user's QR code."""
+    owner = get_owner_from_session(request)
+    user = get_object_or_404(UserProfile, link_id=link_id)
+    share_url = request.build_absolute_uri(f'/m/send/{user.link_id}/')
+    profile_url = request.build_absolute_uri(f'/u/{user.link_id}/')
+
+    return render(request, 'profile_qr.html', {
+        'target_user': user,
+        'user': owner,
+        'share_url': share_url,
+        'profile_url': profile_url,
+        'is_owner': (owner and owner.id == user.id),
+        'active_tab': 'profile' if (owner and owner.id == user.id) else 'discussions',
+    })
+
 
 
 def profile_settings(request, link_id):

@@ -11,8 +11,8 @@
   <!-- Header -->
   <div class="bg-mara px-4 pt-10 pb-6 text-white">
     <div class="max-w-md mx-auto flex items-center gap-3">
-      <a href="{% url 'inbox' user.link_id %}" class="opacity-80 text-sm" aria-label="Retour à la boîte de réception">Retour</a>
-      <h1 class="text-xl font-extrabold">Parametres</h1>
+      <a href="/discussions/" class="opacity-80 text-sm font-semibold hover:opacity-100 transition" aria-label="Retour aux discussions">← Discussions</a>
+      <h1 class="text-xl font-extrabold">Paramètres</h1>
     </div>
   </div>
 
@@ -739,4 +739,6 @@ setTimeout(() => {
   }
 }, 3000);
 </script>
+
+{% include 'includes/bottom_nav.html' with active_tab='profile' %}
 {% endblock %}

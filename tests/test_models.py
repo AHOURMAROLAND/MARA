@@ -41,7 +41,8 @@ class TestGroup:
         assert group.link_id == 'test-group-123'
         assert group.ephemeral_mode == 'none'
         assert group.is_active is True
-        assert str(group) == 'Group: Test Group (@creator)'
+        assert str(group) == 'Group: Test Group (@creator) [anonymous]'
+
 
     def test_group_ephemeral_choices(self):
         group = Group(ephemeral_mode='1h')

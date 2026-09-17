@@ -8,6 +8,7 @@ from apps.inbox import views as inbox_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/v1/', include('apps.api.urls')),
     path('', include('apps.users.urls')),
     path('m/', include('apps.inbox.urls')),
     path('groups/', include('apps.groups.urls')),
@@ -15,6 +16,19 @@ urlpatterns = [
     path('api/push/subscribe/', user_views.push_subscribe, name='push_subscribe'),
     path('api/push/unsubscribe/', user_views.push_unsubscribe, name='push_unsubscribe'),
     
+    # Direct friendly web routes
+    path('discussions/', inbox_views.discussions_view, name='discussions'),
+    path('chat/<uuid:conversation_id>/', inbox_views.chat_view, name='chat_view'),
+    path('thread/<uuid:thread_id>/', inbox_views.thread_view, name='thread_view'),
+    path('thread/new/<uuid:message_id>/', inbox_views.create_or_open_thread, name='create_or_open_thread'),
+    path('story/<uuid:user_id>/', inbox_views.story_viewer_view, name='story_viewer'),
+    path('story/create/', inbox_views.story_create_view, name='story_create'),
+    path('contacts/add/', inbox_views.add_contact_view, name='add_contact'),
+    path('inbox-deck/', inbox_views.inbox_deck_view, name='inbox_deck'),
+    path('notifications/', inbox_views.notifications_view, name='notifications'),
+    path('u/<str:link_id>/', user_views.profile_share, name='public_profile'),
+    path('u/<str:link_id>/qr/', user_views.profile_qr_view, name='profile_qr'),
+
     # PWA Support at Root
     path('service-worker.js', TemplateView.as_view(
         template_name="js/service-worker.js",

@@ -89,11 +89,59 @@ def get_current_session(request):
 
 
 def get_owner_from_session(request):
+    # Try Django session first
     session = get_current_session(request)
     if session and session.session_type == 'owner' and session.user:
         return session.user
+    
+    # Check ngl_session cookie
+    token = request.COOKIES.get('ngl_session')
+    if token:
+        log = SessionLog.objects.filter(token=token, session_type='owner', is_active=True).first()
+        if log and log.user:
+            return log.user
+            
+    # Check Bearer token in Authorization header
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        bearer = auth_header.replace('Bearer ', '').strip()
+        u = UserProfile.objects.filter(reconnect_token=bearer).first()
+        if u:
+            return u
+        log = SessionLog.objects.filter(token=bearer, session_type='owner', is_active=True).first()
+        if log and log.user:
+            return log.user
     return None
+
+
+def get_session_token(request):
+    """Retrieve session token from session, cookies or header"""
+    token = request.session.get('ngl_token')
+    if token:
+        return token
+    token = request.COOKIES.get('ngl_session')
+    if token:
+        return token
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        return auth_header.replace('Bearer ', '').strip()
+    return None
+
+
+def set_session_cookie(response, token):
+    """Sets the ngl_session cookie on an HTTP response"""
+    max_age = 60 * 60 * 24 * 30 # 30 days
+    response.set_cookie(
+        'ngl_session',
+        token,
+        max_age=max_age,
+        httponly=True,
+        samesite='Lax',
+        secure=not settings.DEBUG
+    )
+    return response
 
 
 def random_visitor_count():
     return random.randint(150, 999)
+

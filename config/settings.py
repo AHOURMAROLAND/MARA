@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'apps.users.apps.UsersConfig',
     'apps.inbox.apps.InboxConfig',
     'apps.groups.apps.GroupsConfig',
+    'apps.api.apps.ApiConfig',
 ]
 
 if not DEBUG:

@@ -1,7 +1,8 @@
-const CACHE_NAME = 'mara-v4';
-const urlsToCache = [
+const CACHE_NAME = 'mara-v5';
+const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
+  '/static/css/style.css',
   '/static/img/favicon.ico',
   '/static/img/favicon-16x16.png',
   '/static/img/favicon-32x32.png',
@@ -20,7 +21,7 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('[MARA] Cache opened');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(ASSETS_TO_CACHE);
       })
       .catch(err => console.log('[MARA] Cache error:', err))
   );

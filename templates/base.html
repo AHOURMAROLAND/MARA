@@ -95,7 +95,7 @@
   <script>
     // Global theme initialization to prevent flash
     (function() {
-      const savedTheme = localStorage.getItem('mara-theme') || 'light';
+      const savedTheme = localStorage.getItem('mara-theme') || 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
     })();
   </script>
@@ -322,5 +322,8 @@
         }, 3000);
     }
   </script>
+
+  <!-- SPA Router to avoid hard page reloads -->
+  <script src="{% static 'js/spa_router.js' %}?v=1.0"></script>
 </body>
 </html>

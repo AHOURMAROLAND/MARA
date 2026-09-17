@@ -4,11 +4,12 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from django.contrib import messages
-from apps.users.models import UserProfile
+from apps.users.models import UserProfile, Friendship, Invitation
 from apps.users.utils import create_session, get_owner_from_session, random_visitor_count, get_client_ip, get_device_name
 from apps.users.image_utils import optimize_message_image
-from .models import Message
+from .models import Message, Conversation, ConversationMessage, AnonymousThread, AnonymousThreadMessage, Story, StoryView, Notification
 import os
+from django.db.models import Q
 from django.core.files.base import ContentFile
 import bleach
 import logging
@@ -583,3 +584,307 @@ def download_message_card(request, link_id, msg_id):
     except Exception as e:
         logger.error(f"[MARA] Erreur génération card {msg_id} : {e}")
         return redirect('message_detail', link_id=link_id, msg_id=msg_id)
+
+
+# ==========================================================================
+# Modern Web Views (Obsidian UI & Key Screens)
+# ==========================================================================
+
+def discussions_view(request):
+    """Main screen: Conversations, Stories rail, Anonymous Inbox Deck banner, Direct Chats & Groups."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    now = timezone.now()
+
+    # 1. Stories Rail (User's own active stories + Friends' active stories)
+    friends = list(owner.get_friends())
+    all_story_users = [owner] + friends
+    story_users_with_stories = []
+
+    # Get active stories grouped by user
+    for u in all_story_users:
+        user_stories = Story.objects.filter(user=u, expires_at__gt=now).order_by('created_at')
+        if user_stories.exists() or u.id == owner.id:
+            # Check if current user viewed all stories of this user
+            all_viewed = True
+            if user_stories.exists():
+                viewed_count = StoryView.objects.filter(story__in=user_stories, viewer=owner).count()
+                all_viewed = (viewed_count >= user_stories.count())
+            else:
+                all_viewed = False
+
+            story_users_with_stories.append({
+                'user': u,
+                'is_me': (u.id == owner.id),
+                'has_stories': user_stories.exists(),
+                'story_count': user_stories.count(),
+                'all_viewed': all_viewed,
+                'first_story_id': str(user_stories.first().id) if user_stories.exists() else None,
+            })
+
+    # 2. Anonymous messages & Ongoing Threads
+    unread_anon_messages = Message.objects.filter(recipient=owner, is_read=False, is_archived=False)
+    new_anon_count = unread_anon_messages.count()
+
+    active_threads = AnonymousThread.objects.filter(
+        recipient=owner,
+        status__in=['active', 'revealed']
+    ).select_related('initial_message', 'revealed_user').order_by('-updated_at')[:15]
+
+    threads_data = []
+    for t in active_threads:
+        last_msg = t.messages.order_by('-created_at').first()
+        threads_data.append({
+            'thread': t,
+            'last_message_text': last_msg.text if last_msg else (t.initial_message.text or '📸 Photo anonyme'),
+            'last_message_time': last_msg.created_at if last_msg else t.created_at,
+            'has_unread': False, # In thread model
+        })
+
+    # 3. Direct Conversations (1-on-1 with friends)
+    conversations_qs = Conversation.objects.filter(
+        Q(user1=owner) | Q(user2=owner)
+    ).select_related('user1', 'user2').order_by('-last_message_at')
+
+    conversations_data = []
+    for conv in conversations_qs:
+        other_u = conv.get_other_user(owner)
+        last_msg = conv.messages.order_by('-created_at').first()
+        unread_cnt = conv.messages.filter(sender=other_u, status__in=['sent', 'delivered']).count()
+        conversations_data.append({
+            'conv': conv,
+            'other_user': other_u,
+            'last_message': last_msg,
+            'unread_count': unread_cnt,
+            'is_pinned': conv.is_pinned_by(owner),
+        })
+
+    # 4. User Groups
+    from apps.groups.models import Group
+    session_token = request.session.get('ngl_token')
+    created_groups = owner.created_groups.filter(is_archived=False)
+    joined_groups = Group.objects.filter(participants__session_token=session_token, is_archived=False).exclude(creator=owner)
+    all_groups = (created_groups | joined_groups).distinct().order_by('-last_activity')[:15]
+
+    return render(request, 'discussions.html', {
+        'user': owner,
+        'stories_rail': story_users_with_stories,
+        'new_anon_count': new_anon_count,
+        'threads_data': threads_data,
+        'conversations_data': conversations_data,
+        'groups': all_groups,
+        'active_tab': 'discussions',
+    })
+
+
+def chat_view(request, conversation_id):
+    """Direct 1-on-1 friend chat view."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    conv = get_object_or_404(Conversation, id=conversation_id)
+    if conv.user1_id != owner.id and conv.user2_id != owner.id:
+        return redirect('discussions')
+
+    other_user = conv.get_other_user(owner)
+
+    # Mark incoming messages as read
+    conv.messages.filter(sender=other_user, status__in=['sent', 'delivered']).update(status='read')
+
+    # Handle fallback HTTP message send
+    if request.method == 'POST':
+        text = request.POST.get('text', '').strip()
+        media_file = request.FILES.get('media')
+        if text or media_file:
+            media_type = 'image' if media_file else 'text'
+            ConversationMessage.objects.create(
+                conversation=conv,
+                sender=owner,
+                text=text if text else None,
+                media_file=media_file,
+                media_type=media_type,
+                status='sent'
+            )
+            conv.last_message_at = timezone.now()
+            conv.save(update_fields=['last_message_at'])
+            return redirect('chat_view', conversation_id=conv.id)
+
+    chat_messages = conv.messages.filter(is_deleted_for_all=False).order_by('created_at')
+
+    return render(request, 'chat.html', {
+        'user': owner,
+        'conversation': conv,
+        'other_user': other_user,
+        'messages': chat_messages,
+        'active_tab': 'discussions',
+    })
+
+
+def thread_view(request, thread_id):
+    """Anonymous Thread screen (Fil Anonyme) with dual exclusive actions and silhouette avatar."""
+    owner = get_owner_from_session(request)
+    session_token = request.session.get('ngl_token') or request.COOKIES.get('ngl_visitor_token')
+
+    thread = get_object_or_404(
+        AnonymousThread.objects.select_related('recipient', 'initial_message', 'revealed_user'),
+        id=thread_id
+    )
+
+    is_recipient = (owner and owner.id == thread.recipient_id)
+    is_sender = (session_token and session_token == thread.sender_session_token)
+
+    if not is_recipient and not is_sender:
+        return redirect('discussions' if owner else 'home')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'send':
+            text = request.POST.get('text', '').strip()
+            if text:
+                sender_type = 'recipient' if is_recipient else 'anonymous'
+                AnonymousThreadMessage.objects.create(
+                    thread=thread,
+                    sender_type=sender_type,
+                    text=text
+                )
+                thread.updated_at = timezone.now()
+                thread.save(update_fields=['updated_at'])
+            return redirect('thread_view', thread_id=thread.id)
+
+    thread_messages = thread.messages.order_by('created_at')
+
+    return render(request, 'thread.html', {
+        'user': owner,
+        'thread': thread,
+        'is_recipient': is_recipient,
+        'is_sender': is_sender,
+        'messages': thread_messages,
+        'active_tab': 'discussions',
+    })
+
+
+def create_or_open_thread(request, message_id):
+    """Opens or instantiates an AnonymousThread from a Message."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    msg = get_object_or_404(Message, id=message_id, recipient=owner)
+    
+    # Mark message as read
+    if not msg.is_read:
+        msg.is_read = True
+        msg.save(update_fields=['is_read'])
+
+    thread = msg.threads.first()
+    if not thread:
+        thread = AnonymousThread.objects.create(
+            initial_message=msg,
+            recipient=owner,
+            sender_session_token=msg.sender_session_token or ''
+        )
+
+    return redirect('thread_view', thread_id=thread.id)
+
+
+def story_viewer_view(request, user_id):
+    """Fullscreen Story viewer with segmented timer bars and heart reactions."""
+    owner = get_owner_from_session(request)
+    target_user = get_object_or_404(UserProfile, id=user_id)
+    now = timezone.now()
+
+    stories = Story.objects.filter(user=target_user, expires_at__gt=now).prefetch_related('views__viewer').order_by('created_at')
+    if not stories.exists():
+        messages.info(request, "Aucune story active pour cet utilisateur.")
+        return redirect('discussions' if owner else 'home')
+
+    # Mark as viewed
+    if owner:
+        for s in stories:
+            StoryView.objects.get_or_create(story=s, viewer=owner)
+
+    return render(request, 'story_viewer.html', {
+        'user': owner,
+        'target_user': target_user,
+        'stories': stories,
+        'is_owner': (owner and owner.id == target_user.id),
+    })
+
+
+def story_create_view(request):
+    """Create a new 24h Story (photo, video or gradient text card)."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    if request.method == 'POST':
+        media_type = request.POST.get('media_type', 'image')
+        media_file = request.FILES.get('media_file')
+        text_content = request.POST.get('text_content', '').strip()
+        bg_gradient = request.POST.get('bg_gradient', 'linear-gradient(135deg, #FF4565 0%, #FF8038 100%)')
+
+        if media_file or text_content:
+            Story.objects.create(
+                user=owner,
+                media_type=media_type if media_file else 'text',
+                media_file=media_file,
+                text_content=text_content if text_content else None,
+                bg_gradient=bg_gradient
+            )
+            messages.success(request, "Story publiée avec succès !")
+            return redirect('discussions')
+
+    return render(request, 'story_create.html', {
+        'user': owner,
+        'active_tab': 'stories',
+    })
+
+
+def add_contact_view(request):
+    """Add Contact screen: live pseudo search + neon camera QR code scanner."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    return render(request, 'add_contact.html', {
+        'user': owner,
+        'active_tab': 'add',
+    })
+
+
+def inbox_deck_view(request):
+    """Screen 8.5: Swipeable Deck of received anonymous messages."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    raw_messages = Message.objects.filter(recipient=owner, is_archived=False).order_by('-created_at')[:30]
+
+    return render(request, 'inbox_deck.html', {
+        'user': owner,
+        'messages': raw_messages,
+        'total_count': raw_messages.count(),
+        'active_tab': 'discussions',
+    })
+
+
+def notifications_view(request):
+    """In-app notifications center."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    notifs = Notification.objects.filter(recipient=owner).select_related('actor').order_by('-created_at')[:50]
+    
+    # Mark all read
+    Notification.objects.filter(recipient=owner, is_read=False).update(is_read=True)
+
+    return render(request, 'notifications.html', {
+        'user': owner,
+        'notifications': notifs,
+        'active_tab': 'discussions',
+    })
+

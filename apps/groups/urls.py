@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('', views.groups_list, name='groups_list'),
     path('create/', views.create_group, name='create_group'),
     path('g/<str:link_id>/', views.group_chat, name='group_chat'),
     path('g/<str:link_id>/settings/', views.group_settings, name='group_settings'),

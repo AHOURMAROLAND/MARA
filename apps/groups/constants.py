@@ -128,3 +128,14 @@ BIZARRE_NAMES = [
     "Fox McCloud le Pilote", "Falco Lombardi l'As", "Captain Falcon le Bolide", "Kirby la Boule Rose", "Meta Knight le Masqué",
     "King Dedede le Pingouin", "Villager le Maire", "Isabelle la Secrétaire", "Tom Nook le Marchand", "Resetti la Taupe"
 ]
+
+import random
+
+def get_random_nickname(used_nicknames=None):
+    if used_nicknames is None:
+        used_nicknames = []
+    available = [n for n in BIZARRE_NAMES if n not in used_nicknames]
+    if not available:
+        return f"{random.choice(BIZARRE_NAMES)} #{random.randint(10, 99)}"
+    return random.choice(available)
+

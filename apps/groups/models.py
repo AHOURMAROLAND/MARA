@@ -9,6 +9,10 @@ class Group(models.Model):
         ('1h', '1 heure'),
         ('24h', '24 heures'),
     ]
+    GROUP_TYPE_CHOICES = [
+        ('anonymous', 'Anonyme (pseudos aléatoires)'),
+        ('known', 'Connu (identités réelles)'),
+    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     creator = models.ForeignKey(
         'users.UserProfile', 
@@ -18,6 +22,7 @@ class Group(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='groups/', null=True, blank=True, storage=MediaCloudinaryStorage())
     link_id = models.CharField(max_length=100, unique=True)
+    group_type = models.CharField(max_length=15, choices=GROUP_TYPE_CHOICES, default='anonymous')
     ephemeral_mode = models.CharField(max_length=10, choices=EPHEMERAL_CHOICES, default='none')
     is_active = models.BooleanField(default=True)
     is_archived = models.BooleanField(default=False)
@@ -29,14 +34,16 @@ class Group(models.Model):
         indexes = [
             models.Index(fields=['link_id']),
             models.Index(fields=['last_activity']),
+            models.Index(fields=['group_type']),
         ]
 
     def __str__(self):
-        return f"Group: {self.name} (@{self.creator.pseudo})"
+        return f"Group: {self.name} (@{self.creator.pseudo}) [{self.group_type}]"
 
 class GroupParticipant(models.Model):
-    """Link a session token to a random nickname in a specific group"""
+    """Link a session token or UserProfile to a participant in a specific group"""
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='participants')
+    user = models.ForeignKey('users.UserProfile', null=True, blank=True, on_delete=models.CASCADE, related_name='group_memberships')
     session_token = models.CharField(max_length=255)
     nickname = models.CharField(max_length=50)
     

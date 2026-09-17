@@ -38,6 +38,43 @@ def rotate_pseudo_if_needed(participant):
         return True
     return False
 
+def groups_list(request):
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    session_token = request.session.get('ngl_token')
+    
+    # Get groups created by user or where user is a participant
+    created_groups = Group.objects.filter(creator=owner, is_active=True).order_by('-last_activity')
+    
+    # Also find groups where user participates via session
+    joined_group_ids = []
+    if session_token:
+        joined_group_ids = list(GroupParticipant.objects.filter(session_token=session_token).values_list('group_id', flat=True))
+    
+    all_groups = Group.objects.filter(
+        models.Q(creator=owner) | models.Q(id__in=joined_group_ids),
+        is_active=True
+    ).distinct().order_by('-last_activity')
+
+    groups_data = []
+    for g in all_groups:
+        last_msg = g.messages.order_by('-created_at').first()
+        part_count = g.participants.count()
+        groups_data.append({
+            'group': g,
+            'last_message': last_msg,
+            'participant_count': part_count,
+            'is_creator': g.creator_id == owner.id,
+        })
+
+    return render(request, 'groups/list.html', {
+        'user': owner,
+        'groups': groups_data,
+        'active_tab': 'groups',
+    })
+
 def create_group(request):
     owner = get_owner_from_session(request)
     if not owner:
@@ -45,22 +82,34 @@ def create_group(request):
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
+        group_type = request.POST.get('group_type', 'anonymous')
+        ephemeral_mode = request.POST.get('ephemeral_mode', 'none')
+        photo = request.FILES.get('image')
+
         if not name:
             messages.error(request, "Le nom du groupe est requis.")
-            return redirect('profile_share', link_id=owner.link_id)
+            return render(request, 'groups/create.html', {'user': owner, 'active_tab': 'groups'})
 
         link_id = f"{slugify(name)}-{str(uuid.uuid4())[:8]}"
         
-        group = Group.objects.create(
+        group = Group(
             creator=owner,
             name=name,
-            link_id=link_id
+            link_id=link_id,
+            group_type=group_type if group_type in ['anonymous', 'known'] else 'anonymous',
+            ephemeral_mode=ephemeral_mode if ephemeral_mode in ['none', '1h', '24h'] else 'none'
         )
+        if photo:
+            group.image = photo
+        group.save()
         
         messages.success(request, f"Groupe '{name}' créé avec succès !")
         return redirect('group_chat', link_id=link_id)
 
-    return redirect('profile_share', link_id=owner.link_id)
+    return render(request, 'groups/create.html', {
+        'user': owner,
+        'active_tab': 'groups'
+    })
 
 def proxy_download_image(request, message_id):
     """
