@@ -46,7 +46,7 @@
         </a>
 
         <!-- Profile Avatar with Glow -->
-        <a href="{% url 'profile_settings' user.link_id %}" class="story-ring-active" title="Mon Profil">
+        <a href="{% url 'profile_me' %}" class="story-ring-active" title="Mon Profil">
           {% if user.photo %}
             <img src="{{ user.photo.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-[#0B0E14]" alt="@{{ user.pseudo }}" />
           {% else %}
@@ -200,78 +200,86 @@
     </section>
     {% endif %}
 
-    <!-- 4. Direct Conversations & Groups -->
-    <section aria-label="Messages directs et groupes">
+    <!-- 4. Direct Conversations -->
+    <section aria-label="Messages directs">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="text-xs font-bold text-theme-muted uppercase tracking-wider">Conversations Directes & Groupes</h2>
+        <h2 class="text-xs font-bold text-theme-muted uppercase tracking-wider">Conversations Privées</h2>
         <a href="{% url 'add_contact' %}" class="text-[11px] text-mara-pink font-semibold hover:underline">+ Nouveau contact</a>
       </div>
 
       <div class="bg-theme-surface rounded-2xl border border-theme-border overflow-hidden divide-y divide-theme-border/40" id="conversations-list">
-        
-        <!-- Direct Chats -->
         {% for c_data in conversations_data %}
-          <a href="{% url 'chat_view' c_data.conv.id %}" class="conversation-item flex items-center gap-3.5 p-3.5 hover:bg-[#161D2B]/70 transition-colors group" data-title="{{ c_data.other_user.pseudo }}">
-            <div class="story-ring-active flex-shrink-0">
-              {% if c_data.other_user.photo %}
-                <img src="{{ c_data.other_user.photo.url }}" class="w-11 h-11 rounded-full object-cover border-2 border-[#0B0E14]" alt="@{{ c_data.other_user.pseudo }}" />
-              {% else %}
-                <div class="w-11 h-11 rounded-full bg-[#161D2B] border-2 border-[#0B0E14] flex items-center justify-center text-white text-xs font-extrabold">
-                  {{ c_data.other_user.pseudo|first|upper }}
-                </div>
-              {% endif %}
-            </div>
-
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-bold text-white truncate">@{{ c_data.other_user.pseudo }}</h3>
-                {% if c_data.last_message %}
-                  <span class="text-[10px] text-theme-muted">{{ c_data.last_message.created_at|timesince }}</span>
-                {% endif %}
-              </div>
-              <p class="text-xs text-theme-muted truncate mt-0.5">
-                {% if c_data.last_message %}
-                  {% if c_data.last_message.sender_id == user.id %}Toi : {% endif %}
-                  {{ c_data.last_message.text|default:"Fichier multimédia" }}
+          <div class="conversation-item flex items-center justify-between p-3.5 hover:bg-[#161D2B]/70 transition-colors group" data-title="{{ c_data.other_user.pseudo }}">
+            <a href="{% url 'chat_view' c_data.conv.id %}" class="flex items-center gap-3.5 flex-1 min-w-0 pr-2">
+              <div class="story-ring-active flex-shrink-0">
+                {% if c_data.other_user.photo %}
+                  <img src="{{ c_data.other_user.photo.url }}" class="w-11 h-11 rounded-full object-cover border-2 border-[#0B0E14]" alt="@{{ c_data.other_user.pseudo }}" />
                 {% else %}
-                  Discussion créée
+                  <div class="w-11 h-11 rounded-full bg-[#161D2B] border-2 border-[#0B0E14] flex items-center justify-center text-white text-xs font-extrabold">
+                    {{ c_data.other_user.pseudo|first|upper }}
+                  </div>
                 {% endif %}
-              </p>
-            </div>
+              </div>
 
-            {% if c_data.unread_count > 0 %}
-              <span class="w-5 h-5 rounded-full bg-mara text-white text-[10px] font-extrabold flex items-center justify-center shadow-md">
-                {{ c_data.unread_count }}
-              </span>
-            {% else %}
-              <div class="text-theme-muted group-hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-bold text-white truncate">@{{ c_data.other_user.pseudo }}</h3>
+                  {% if c_data.last_message %}
+                    <span class="text-[10px] text-theme-muted">{{ c_data.last_message.created_at|timesince }}</span>
+                  {% endif %}
+                </div>
+                <p class="text-xs text-theme-muted truncate mt-0.5">
+                  {% if c_data.last_message %}
+                    {% if c_data.last_message.sender_id == user.id %}Toi : {% endif %}
+                    {{ c_data.last_message.text|default:"Fichier multimédia" }}
+                  {% else %}
+                    Discussion créée
+                  {% endif %}
+                </p>
+              </div>
+            </a>
+
+            <div class="flex items-center gap-2">
+              {% if c_data.unread_count > 0 %}
+                <span class="w-5 h-5 rounded-full bg-mara text-white text-[10px] font-extrabold flex items-center justify-center shadow-md">
+                  {{ c_data.unread_count }}
+                </span>
+              {% endif %}
+              <button type="button" onclick="deleteConversation('{{ c_data.conv.id }}', '@{{ c_data.other_user.pseudo }}', this)" class="p-2 text-theme-muted hover:text-red-400 opacity-40 group-hover:opacity-100 transition-opacity" title="Supprimer la conversation">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-              </div>
-            {% endif %}
-          </a>
-        {% empty %}
-          {% if not threads_data and not groups %}
-            <div class="text-center py-12 px-4 text-theme-muted">
-              <div class="w-16 h-16 rounded-full bg-[#161D2B] flex items-center justify-center mx-auto mb-3 text-2xl">
-                💬
-              </div>
-              <h3 class="text-sm font-bold text-white mb-1">Aucune conversation pour l'instant</h3>
-              <p class="text-xs text-theme-muted max-w-xs mx-auto mb-4">Partage ton lien ou ajoute des amis pour commencer à discuter !</p>
-              <div class="flex justify-center gap-3">
-                <a href="{% url 'public_profile' user.link_id %}" class="btn-mara px-4 py-2 rounded-xl text-xs font-bold">
-                  Partager mon lien
-                </a>
-                <a href="{% url 'add_contact' %}" class="btn-dark px-4 py-2 rounded-xl text-xs">
-                  Trouver un ami
-                </a>
-              </div>
+              </button>
             </div>
-          {% endif %}
+          </div>
+        {% empty %}
+          <div class="text-center py-8 px-4 text-theme-muted">
+            <div class="w-12 h-12 rounded-full bg-[#161D2B] flex items-center justify-center mx-auto mb-2 text-xl">
+              💬
+            </div>
+            <h3 class="text-xs font-bold text-white mb-1">Aucune conversation privée</h3>
+            <p class="text-[11px] text-theme-muted max-w-xs mx-auto mb-3">Partage ton lien ou ajoute des amis pour commencer à discuter !</p>
+            <div class="flex justify-center gap-2">
+              <a href="{% url 'profile_me' %}" class="btn-mara px-3 py-1.5 rounded-xl text-xs font-bold">
+                Mon profil
+              </a>
+              <a href="{% url 'add_contact' %}" class="btn-dark px-3 py-1.5 rounded-xl text-xs">
+                Trouver un ami
+              </a>
+            </div>
+          </div>
         {% endfor %}
+      </div>
+    </section>
 
-        <!-- Groups -->
+    <!-- 5. Groups Section -->
+    <section aria-label="Groupes de discussion">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xs font-bold text-theme-muted uppercase tracking-wider">Groupes Actifs</h2>
+        <a href="{% url 'create_group' %}" class="text-[11px] text-mara-pink font-semibold hover:underline">+ Créer un groupe</a>
+      </div>
+
+      <div class="bg-theme-surface rounded-2xl border border-theme-border overflow-hidden divide-y divide-theme-border/40">
         {% for grp in groups %}
           <a href="{% url 'group_chat' grp.link_id %}" class="conversation-item flex items-center gap-3.5 p-3.5 hover:bg-[#161D2B]/70 transition-colors group" data-title="{{ grp.name }}">
             <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#2563EB]/20 to-[#9333EA]/20 border border-white/10 flex items-center justify-center text-white flex-shrink-0">
@@ -300,8 +308,14 @@
               </svg>
             </div>
           </a>
+        {% empty %}
+          <div class="text-center py-6 px-4 text-theme-muted">
+            <p class="text-xs mb-2">Aucun groupe pour le moment.</p>
+            <a href="{% url 'create_group' %}" class="btn-dark px-3 py-1.5 rounded-xl text-xs inline-block">
+              Créer un groupe
+            </a>
+          </div>
         {% endfor %}
-
       </div>
     </section>
 
@@ -371,6 +385,33 @@
         el.style.display = 'none';
       }
     });
+  }
+
+  function deleteConversation(convId, pseudo, btn) {
+    if (confirm(`Supprimer la conversation avec ${pseudo} ?`)) {
+      fetch(`/api/v1/conversations/${convId}/delete/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          const item = btn.closest('.conversation-item');
+          if (item) {
+            item.style.transition = 'all 0.3s ease';
+            item.style.opacity = '0';
+            item.style.transform = 'scale(0.9)';
+            setTimeout(() => item.remove(), 300);
+          }
+          showToast('Conversation supprimée.', 'info');
+        } else {
+          alert('Impossible de supprimer la conversation.');
+        }
+      });
+    }
   }
 </script>
 {% endblock %}

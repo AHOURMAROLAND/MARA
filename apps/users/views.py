@@ -5,7 +5,9 @@ from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password, check_password
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from .models import UserProfile, PushSubscription
+from django.utils import timezone
+from .models import UserProfile, PushSubscription, Friendship, Invitation, BlockedSender
+from apps.inbox.models import Message, Conversation
 from .utils import create_session, get_owner_from_session
 import re
 import json
@@ -500,10 +502,101 @@ def reconnect_session(request):
             'success': True,
             'pseudo': user.pseudo,
             'link_id': user.link_id,
-            'redirect': f'/m/inbox/{user.link_id}/',
+            'redirect': '/discussions/',
         })
 
     except Exception as e:
         logger.error(f'[MARA] Erreur reconnexion : {e}')
         return JsonResponse({'error': 'Server error'}, status=500)
+
+
+def profile_me(request):
+    """Screen: Mon Profil - Personal hub with real stats, dynamic theme glow, direct QR code & friends."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    friends = list(owner.get_friends())
+    friends_count = len(friends)
+    now = timezone.now()
+    stories_count = owner.stories.filter(expires_at__gt=now).count()
+    unread_anon_count = Message.objects.filter(recipient=owner, is_read=False, is_archived=False).count()
+
+    share_url = request.build_absolute_uri(f'/m/send/{owner.link_id}/')
+    profile_url = request.build_absolute_uri(f'/u/{owner.link_id}/')
+
+    return render(request, 'profile_me.html', {
+        'user': owner,
+        'friends_count': friends_count,
+        'stories_count': stories_count,
+        'unread_anon_count': unread_anon_count,
+        'recent_friends': friends[:6],
+        'share_url': share_url,
+        'profile_url': profile_url,
+        'active_tab': 'profile',
+    })
+
+
+def friends_list(request):
+    """Screen: Mes Amis - Full friends management with direct profile visit, QR code share and chat."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    from django.db.models import Q
+    friends = list(owner.get_friends())
+    forward_text = request.GET.get('forward_text', '')
+
+    friends_data = []
+    for f in friends:
+        conv = Conversation.objects.filter(
+            (Q(user1=owner) & Q(user2=f)) | (Q(user1=f) & Q(user2=owner))
+        ).first()
+        friends_data.append({
+            'friend': f,
+            'conv_id': str(conv.id) if conv else None,
+            'profile_url': request.build_absolute_uri(f'/u/{f.link_id}/'),
+            'qr_url': f'/u/{f.link_id}/qr/',
+            'send_anon_url': f'/m/send/{f.link_id}/',
+        })
+
+    return render(request, 'friends_list.html', {
+        'user': owner,
+        'friends_data': friends_data,
+        'friends_count': len(friends),
+        'forward_text': forward_text,
+        'active_tab': 'profile',
+    })
+
+
+def remove_friend(request, friend_id):
+    """Remove a friend cleanly."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    from django.db.models import Q
+    friend = get_object_or_404(UserProfile, id=friend_id)
+    Friendship.objects.filter(
+        (Q(user1=owner) & Q(user2=friend)) | (Q(user1=friend) & Q(user2=owner))
+    ).delete()
+    messages.success(request, f"@{friend.pseudo} a été retiré de vos amis.")
+    return redirect('friends_list')
+
+
+def block_friend(request, friend_id):
+    """Block a user and remove friendship."""
+    owner = get_owner_from_session(request)
+    if not owner:
+        return redirect('home')
+
+    from django.db.models import Q
+    friend = get_object_or_404(UserProfile, id=friend_id)
+    Friendship.objects.filter(
+        (Q(user1=owner) & Q(user2=friend)) | (Q(user1=friend) & Q(user2=owner))
+    ).delete()
+    BlockedSender.objects.get_or_create(user=owner, blocked_user=friend)
+    messages.success(request, f"@{friend.pseudo} a été bloqué.")
+    return redirect('friends_list')
+
 

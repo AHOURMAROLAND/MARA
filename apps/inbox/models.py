@@ -2,7 +2,6 @@ from django.db import models
 from django.utils import timezone
 import uuid
 from datetime import timedelta
-from cloudinary_storage.storage import MediaCloudinaryStorage
 
 
 class Message(models.Model):
@@ -14,7 +13,7 @@ class Message(models.Model):
     )
 
     text = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to='messages/', null=True, blank=True, storage=MediaCloudinaryStorage())
+    image = models.ImageField(upload_to='messages/', null=True, blank=True)
     image_caption = models.TextField(null=True, blank=True)
 
     sender_ip = models.GenericIPAddressField(null=True, blank=True)
@@ -97,7 +96,7 @@ class AnonymousThreadMessage(models.Model):
     thread = models.ForeignKey(AnonymousThread, on_delete=models.CASCADE, related_name='messages')
     sender_type = models.CharField(max_length=20, choices=SENDER_TYPE_CHOICES)
     text = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to='thread_media/', null=True, blank=True, storage=MediaCloudinaryStorage())
+    image = models.ImageField(upload_to='thread_media/', null=True, blank=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='sent')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -160,7 +159,7 @@ class ConversationMessage(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey('users.UserProfile', on_delete=models.CASCADE, related_name='sent_conversation_messages')
     text = models.TextField(null=True, blank=True)
-    media_file = models.FileField(upload_to='conversation_media/', null=True, blank=True, storage=MediaCloudinaryStorage())
+    media_file = models.FileField(upload_to='conversation_media/', null=True, blank=True)
     media_type = models.CharField(max_length=15, choices=MEDIA_TYPE_CHOICES, default='text')
     voice_duration = models.IntegerField(default=0, help_text="Durée audio en secondes")
 
@@ -200,7 +199,7 @@ class Story(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey('users.UserProfile', on_delete=models.CASCADE, related_name='stories')
-    media_file = models.FileField(upload_to='stories/', null=True, blank=True, storage=MediaCloudinaryStorage())
+    media_file = models.FileField(upload_to='stories/', null=True, blank=True)
     media_type = models.CharField(max_length=15, choices=MEDIA_TYPE_CHOICES, default='image')
     text_content = models.TextField(null=True, blank=True)
     text_color = models.CharField(max_length=20, default='#FFFFFF')

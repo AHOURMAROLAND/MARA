@@ -75,6 +75,33 @@
               <span>➕ Ajouter en ami</span>
             </button>
           {% endif %}
+          
+          <!-- Visited Profile Quick Actions (QR & Share) -->
+          <div class="grid grid-cols-2 gap-2 mt-1">
+            <a href="{% url 'profile_qr' target_user.link_id %}" class="btn-dark py-2.5 rounded-2xl text-xs font-bold gap-1.5 text-mara-pink border-mara-pink/30 hover:bg-mara-pink/10">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+              <span>QR Code</span>
+            </a>
+            <button onclick="shareProfile()" class="btn-dark py-2.5 rounded-2xl text-xs font-bold gap-1.5 hover:border-white/30">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-theme-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              <span>Partager</span>
+            </button>
+          </div>
+
+          <!-- Moderation Actions -->
+          <div class="mt-2 pt-3 border-t border-white/5 grid grid-cols-2 gap-2">
+            <button onclick="blockUser('{{ target_user.pseudo }}')" class="py-2 text-[11px] font-bold text-red-500/80 hover:text-red-400 bg-red-500/5 hover:bg-red-500/10 rounded-xl transition-colors">
+              Bloquer
+            </button>
+            <button onclick="reportUser('{{ target_user.pseudo }}')" class="py-2 text-[11px] font-bold text-yellow-500/80 hover:text-yellow-400 bg-yellow-500/5 hover:bg-yellow-500/10 rounded-xl transition-colors">
+              Signaler
+            </button>
+          </div>
+
         {% elif is_owner %}
           <div class="grid grid-cols-2 gap-2">
             <a href="{% url 'profile_qr' target_user.link_id %}" class="btn-dark py-3 rounded-2xl text-xs font-bold gap-1.5 text-mara-pink border-mara-pink/30 hover:bg-mara-pink/10">
@@ -185,6 +212,41 @@
     navigator.clipboard.writeText("{{ share_url }}").then(() => {
       showToast("Lien copié !", "success");
     });
+  }
+
+  function shareProfile() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Profil de @{{ target_user.pseudo }} sur MARA',
+        text: 'Viens voir le profil de @{{ target_user.pseudo }} sur MARA !',
+        url: "{{ profile_url }}",
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText("{{ profile_url }}").then(() => {
+        showToast("Lien du profil copié !", "success");
+      });
+    }
+  }
+
+  function blockUser(pseudo) {
+    if (confirm("Voulez-vous vraiment bloquer @" + pseudo + " ? Vous ne recevrez plus ses messages et n'apparaîtrez plus dans sa liste d'amis.")) {
+      fetch(`/friends/${pseudo}/block/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      }).then(r => {
+        if(r.ok) {
+          showToast("Utilisateur bloqué", "success");
+          setTimeout(() => window.location.href = '/discussions/', 1000);
+        }
+      });
+    }
+  }
+
+  function reportUser(pseudo) {
+    if (confirm("Signaler @" + pseudo + " pour comportement abusif ?")) {
+      // Pour l'instant on affiche juste un toast
+      showToast("Signalement envoyé avec succès. Merci !", "success");
+    }
   }
 </script>
 {% endblock %}

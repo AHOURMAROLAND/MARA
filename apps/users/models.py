@@ -1,6 +1,5 @@
 from django.db import models
 import uuid
-from cloudinary_storage.storage import MediaCloudinaryStorage
 
 
 class PushSubscription(models.Model):
@@ -31,7 +30,7 @@ class UserProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pseudo = models.CharField(max_length=50, unique=True)
     bio = models.TextField(max_length=250, null=True, blank=True)
-    photo = models.ImageField(upload_to='profiles/', null=True, blank=True, storage=MediaCloudinaryStorage())
+    photo = models.ImageField(upload_to='profiles/', null=True, blank=True)
     link_id = models.CharField(max_length=100, unique=True)
     pin_code = models.CharField(max_length=128, null=True, blank=True)
 

@@ -24,6 +24,7 @@ urlpatterns = [
     path('conversations/', views_chat.api_list_conversations, name='list_conversations'),
     path('conversations/<uuid:conversation_id>/messages/', views_chat.api_get_messages, name='get_messages'),
     path('conversations/<uuid:conversation_id>/send/', views_chat.api_send_message, name='send_message'),
+    path('conversations/<uuid:conversation_id>/delete/', views_chat.api_delete_conversation, name='delete_conversation'),
     path('messages/action/', views_chat.api_message_action, name='message_action'),
     path('link-preview/', views_chat.api_link_preview, name='link_preview'),
 

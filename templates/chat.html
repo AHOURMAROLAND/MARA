@@ -84,11 +84,21 @@
     {% for msg in messages %}
       {% if msg.sender_id == user.id %}
         <!-- User Bubble (Me) -->
-        <div class="bubble-me message-item cursor-pointer" data-id="{{ msg.id }}" data-text="{{ msg.text|default:'' }}" oncontextmenu="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', true)">
+        <div class="bubble-me message-item cursor-pointer" data-id="{{ msg.id }}" data-text="{{ msg.text|default:'' }}" oncontextmenu="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', true)" onclick="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', true)">
           {% if msg.media_file %}
-            <div class="relative rounded-xl overflow-hidden mb-2">
-              <img src="{{ msg.media_file.url }}" class="rounded-xl max-h-64 w-full object-cover border border-white/20" alt="" />
-            </div>
+            {% if msg.media_type == 'video' %}
+              <div class="relative rounded-xl overflow-hidden mb-2">
+                <video src="{{ msg.media_file.url }}" controls class="rounded-xl max-h-64 w-full object-cover border border-white/20"></video>
+              </div>
+            {% elif msg.media_type == 'audio' %}
+              <div class="py-1 mb-1">
+                <audio src="{{ msg.media_file.url }}" controls class="w-full max-w-[220px] h-8 rounded-full opacity-90"></audio>
+              </div>
+            {% else %}
+              <div class="relative rounded-xl overflow-hidden mb-2">
+                <img src="{{ msg.media_file.url }}" class="rounded-xl max-h-64 w-full object-cover border border-white/20" alt="" />
+              </div>
+            {% endif %}
           {% endif %}
           {% if msg.text %}
             <p class="text-sm font-medium leading-relaxed select-text">{{ msg.text }}</p>
@@ -100,11 +110,21 @@
         </div>
       {% else %}
         <!-- Friend Bubble (Other) -->
-        <div class="bubble-anonymous message-item cursor-pointer" data-id="{{ msg.id }}" data-text="{{ msg.text|default:'' }}" oncontextmenu="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', false)">
+        <div class="bubble-anonymous message-item cursor-pointer" data-id="{{ msg.id }}" data-text="{{ msg.text|default:'' }}" oncontextmenu="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', false)" onclick="openContextMenu(event, '{{ msg.id }}', '{{ msg.text|escapejs }}', false)">
           {% if msg.media_file %}
-            <div class="relative rounded-xl overflow-hidden mb-2">
-              <img src="{{ msg.media_file.url }}" class="rounded-xl max-h-64 w-full object-cover border border-white/10" alt="" />
-            </div>
+            {% if msg.media_type == 'video' %}
+              <div class="relative rounded-xl overflow-hidden mb-2">
+                <video src="{{ msg.media_file.url }}" controls class="rounded-xl max-h-64 w-full object-cover border border-white/10"></video>
+              </div>
+            {% elif msg.media_type == 'audio' %}
+              <div class="py-1 mb-1">
+                <audio src="{{ msg.media_file.url }}" controls class="w-full max-w-[220px] h-8 rounded-full opacity-90"></audio>
+              </div>
+            {% else %}
+              <div class="relative rounded-xl overflow-hidden mb-2">
+                <img src="{{ msg.media_file.url }}" class="rounded-xl max-h-64 w-full object-cover border border-white/10" alt="" />
+              </div>
+            {% endif %}
           {% endif %}
           {% if msg.text %}
             <p class="text-sm font-medium leading-relaxed select-text">{{ msg.text }}</p>
@@ -239,8 +259,11 @@
         <button type="button" onclick="actionForward()" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-white hover:bg-white/5 rounded-lg transition">
           <span>➡️</span> Transférer
         </button>
-        <button type="button" id="modal-delete-btn" onclick="actionDelete()" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-rose-400 hover:bg-rose-500/10 rounded-lg transition">
-          <span>🗑️</span> Supprimer le message
+        <button type="button" onclick="actionDelete('delete_for_me')" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-rose-400 hover:bg-rose-500/10 rounded-lg transition">
+          <span>🗑️</span> Supprimer pour moi
+        </button>
+        <button type="button" id="modal-delete-everyone-btn" onclick="actionDelete('delete_for_everyone')" class="w-full text-left py-2.5 px-3 flex items-center gap-3 text-rose-500 hover:bg-rose-500/10 rounded-lg transition">
+          <span>💥</span> Supprimer pour tout le monde
         </button>
       </div>
 
@@ -300,7 +323,13 @@
 
     let mediaHtml = '';
     if (msg.media_url) {
-      mediaHtml = `<img src="${msg.media_url}" class="rounded-xl max-h-64 w-full object-cover mb-2 border border-white/10" alt="" />`;
+      if (msg.media_type === 'video') {
+        mediaHtml = `<div class="relative rounded-xl overflow-hidden mb-2"><video src="${msg.media_url}" controls class="rounded-xl max-h-64 w-full object-cover border border-white/20"></video></div>`;
+      } else if (msg.media_type === 'audio') {
+        mediaHtml = `<div class="py-1 mb-1"><audio src="${msg.media_url}" controls class="w-full max-w-[220px] h-8 rounded-full opacity-90"></audio></div>`;
+      } else {
+        mediaHtml = `<div class="relative rounded-xl overflow-hidden mb-2"><img src="${msg.media_url}" class="rounded-xl max-h-64 w-full object-cover border border-white/10" alt="" /></div>`;
+      }
     }
 
     bubble.innerHTML = `
@@ -348,7 +377,7 @@
     }
   }
 
-  // Media upload simulation with progress circle
+  // Real media upload with actual progress tracking
   function handleMediaUpload(input) {
     const file = input.files[0];
     if (!file) return;
@@ -358,111 +387,205 @@
     const percentText = document.getElementById('upload-percent');
 
     progressContainer.classList.remove('hidden');
-    let percent = 0;
-    const interval = setInterval(() => {
-      percent += 15;
-      if (percent > 100) {
-        percent = 100;
-        clearInterval(interval);
-        setTimeout(() => {
-          progressContainer.classList.add('hidden');
-          // Add uploaded message bubble
-          const reader = new FileReader();
-          reader.onload = function(evt) {
-            appendChatMessage({
-              sender_id: myUserId,
-              media_url: evt.target.result,
-              text: 'Photo partagée 📸',
-              created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-          };
-          reader.readAsDataURL(file);
-        }, 500);
+
+    const formData = new FormData();
+    formData.append('media_file', file);
+    formData.append('media_type', file.type.startsWith('video/') ? 'video' : 'image');
+    formData.append('text', file.type.startsWith('video/') ? 'Vidéo 🎥' : 'Photo 📸');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/v1/conversations/${conversationId}/send/`, true);
+    xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        const offset = 100.5 - (percent / 100 * 100.5);
+        circle.style.strokeDashoffset = offset;
+        percentText.textContent = `${percent}%`;
       }
-      const offset = 100.5 - (percent / 100 * 100.5);
-      circle.style.strokeDashoffset = offset;
-      percentText.textContent = `${percent}%`;
-    }, 150);
+    };
+
+    xhr.onload = function() {
+      progressContainer.classList.add('hidden');
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          if (res.success && res.message) {
+            appendChatMessage(res.message);
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+              chatSocket.send(JSON.stringify({
+                type: 'chat_message',
+                sender_id: myUserId,
+                message: res.message.text,
+                media_url: res.message.media_url,
+                media_type: res.message.media_type
+              }));
+            }
+          }
+        } catch(e) {
+          console.error(e);
+        }
+      } else {
+        alert("Erreur lors du téléversement du média.");
+      }
+      input.value = '';
+    };
+
+    xhr.onerror = function() {
+      progressContainer.classList.add('hidden');
+      alert("Erreur de connexion lors du téléversement.");
+      input.value = '';
+    };
+
+    xhr.send(formData);
   }
 
-  // Voice recording mock with wave preview
+  // Real voice recording using navigator.mediaDevices & MediaRecorder
+  let mediaRecorder = null;
+  let audioChunks = [];
   let recordTimerInterval = null;
   let recordSeconds = 0;
 
-  function startVoiceRecording() {
-    document.getElementById('voice-record-bar').classList.remove('hidden');
-    document.getElementById('chat-input-bar').classList.add('hidden');
-    recordSeconds = 0;
-    recordTimerInterval = setInterval(() => {
-      recordSeconds++;
-      const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
-      const secs = String(recordSeconds % 60).padStart(2, '0');
-      document.getElementById('voice-timer').textContent = `${mins}:${secs}`;
-    }, 1000);
+  async function startVoiceRecording() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Votre navigateur ne supporte pas l'enregistrement audio direct.");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+
+      document.getElementById('voice-record-bar').classList.remove('hidden');
+      document.getElementById('chat-input-bar').classList.add('hidden');
+      recordSeconds = 0;
+      recordTimerInterval = setInterval(() => {
+        recordSeconds++;
+        const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+        const secs = String(recordSeconds % 60).padStart(2, '0');
+        document.getElementById('voice-timer').textContent = `${mins}:${secs}`;
+      }, 1000);
+    } catch(err) {
+      alert("Accès micro refusé ou indisponible : " + err.message);
+    }
   }
 
   function cancelVoiceRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
     clearInterval(recordTimerInterval);
     document.getElementById('voice-record-bar').classList.add('hidden');
     document.getElementById('chat-input-bar').classList.remove('hidden');
   }
 
   function sendVoiceRecording() {
+    if (!mediaRecorder) return;
     clearInterval(recordTimerInterval);
     document.getElementById('voice-record-bar').classList.add('hidden');
     document.getElementById('chat-input-bar').classList.remove('hidden');
-    
-    // Add voice message bubble
-    const container = document.getElementById('live-chat-messages');
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble-me message-item';
-    bubble.innerHTML = `
-      <div class="flex items-center gap-3 py-1">
-        <button type="button" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white">▶</button>
-        <div class="flex-1 flex items-center gap-1">
-          <div class="w-full bg-white/30 h-1.5 rounded-full overflow-hidden">
-            <div class="bg-white h-full w-1/3"></div>
-          </div>
-        </div>
-        <span class="text-[10px] font-mono text-white/80">${document.getElementById('voice-timer').textContent}</span>
-      </div>
-      <div class="bubble-time flex items-center justify-end gap-1">
-        <span>À l'instant</span>
-        <span class="text-white/80 font-bold">✓✓</span>
-      </div>
-    `;
-    container.appendChild(bubble);
-    scrollBottom();
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const audioFile = new File([audioBlob], 'vocal.webm', { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('media_file', audioFile);
+      formData.append('media_type', 'audio');
+      formData.append('voice_duration', recordSeconds);
+      formData.append('text', `Message vocal (${document.getElementById('voice-timer').textContent})`);
+
+      fetch(`/api/v1/conversations/${conversationId}/send/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: formData
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.message) {
+          appendChatMessage(res.message);
+          if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+              type: 'chat_message',
+              sender_id: myUserId,
+              message: res.message.text,
+              media_url: res.message.media_url,
+              media_type: res.message.media_type
+            }));
+          }
+        }
+      });
+    };
+
+    if (mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
   }
 
   // Long-press Context Menu Functions
   function openContextMenu(e, msgId, text, isMe) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     activeContextMessageId = msgId;
     activeContextMessageText = text;
     activeContextIsMe = isMe;
+
+    const delEveryoneBtn = document.getElementById('modal-delete-everyone-btn');
+    if (delEveryoneBtn) {
+      if (isMe) {
+        delEveryoneBtn.classList.remove('hidden');
+      } else {
+        delEveryoneBtn.classList.add('hidden');
+      }
+    }
 
     const modal = document.getElementById('message-context-modal');
     modal.classList.remove('hidden');
   }
 
-  function closeContextMenu(e) {
+  function closeContextMenu() {
     document.getElementById('message-context-modal').classList.add('hidden');
   }
 
   function sendReaction(emoji) {
     closeContextMenu();
-    appendChatMessage({
-      sender_id: myUserId,
-      text: `Réaction : ${emoji}`,
-      created_at: 'À l\'instant'
+    if (!activeContextMessageId) return;
+
+    fetch('/api/v1/messages/action/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        action: 'react',
+        message_id: activeContextMessageId,
+        emoji: emoji
+      })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast(res.action === 'reaction_added' ? `Réagi avec ${emoji}` : "Réaction retirée", "info");
+      }
     });
   }
 
   function actionCopy() {
     if (activeContextMessageText) {
       navigator.clipboard.writeText(activeContextMessageText);
-      alert('Texte copié dans le presse-papier !');
+      showToast('Texte copié !', 'success');
     }
     closeContextMenu();
   }
@@ -476,17 +599,37 @@
 
   function actionPin() {
     closeContextMenu();
-    alert('Message épinglé en haut de la conversation !');
+    fetch('/api/v1/messages/action/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        action: 'pin',
+        message_id: activeContextMessageId
+      })
+    })
+    .then(r => r.json())
+    .then(res => {
+      showToast(res.is_pinned ? 'Message épinglé 📌' : 'Message désépinglé', 'info');
+    });
   }
 
   function actionForward() {
     closeContextMenu();
-    alert('Transférer vers un autre contact...');
+    window.location.href = `/friends/?forward_text=${encodeURIComponent(activeContextMessageText)}`;
   }
 
-  function actionDelete() {
+  function actionDelete(deleteType = 'delete_for_me') {
     closeContextMenu();
-    if (confirm('Voulez-vous supprimer ce message ?')) {
+    if (!activeContextMessageId) return;
+
+    const confirmText = (deleteType === 'delete_for_everyone') 
+      ? "Voulez-vous supprimer ce message pour TOUT LE MONDE ?" 
+      : "Voulez-vous supprimer ce message pour VOUS ?";
+
+    if (confirm(confirmText)) {
       fetch('/api/v1/messages/action/', {
         method: 'POST',
         headers: {
@@ -494,11 +637,25 @@
           'X-CSRFToken': '{{ csrf_token }}'
         },
         body: JSON.stringify({
-          action: 'delete',
+          action: deleteType,
           message_id: activeContextMessageId
         })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          const el = document.querySelector(`.message-item[data-id="${activeContextMessageId}"]`);
+          if (el) {
+            el.style.transition = 'all 0.3s ease';
+            el.style.opacity = '0';
+            el.style.transform = 'scale(0.9)';
+            setTimeout(() => el.remove(), 300);
+          }
+          showToast("Message supprimé.", "info");
+        } else {
+          alert(res.error || "Impossible de supprimer le message.");
+        }
       });
-      alert('Message supprimé.');
     }
   }
 

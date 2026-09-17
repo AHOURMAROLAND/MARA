@@ -274,6 +274,8 @@ def message_detail(request, link_id, msg_id):
 def delete_message(request, link_id, msg_id):
     owner = get_owner_from_session(request)
     if not owner or owner.link_id != link_id:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({'success': False, 'error': 'Non autorisé'}, status=403)
         return redirect('home')
 
     msg = get_object_or_404(Message, id=msg_id, recipient=owner)
@@ -281,9 +283,11 @@ def delete_message(request, link_id, msg_id):
         msg.is_archived = True
         msg.archived_at = timezone.now()
         msg.save(update_fields=['is_archived', 'archived_at'])
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({'success': True, 'message': 'Message archivé avec succès !'})
         messages.success(request, 'Message archivé avec succès !')
 
-    return redirect('inbox', link_id=link_id)
+    return redirect('inbox_deck')
 
 
 def unarchive_message(request, link_id, msg_id):
@@ -651,14 +655,20 @@ def discussions_view(request):
     conversations_data = []
     for conv in conversations_qs:
         other_u = conv.get_other_user(owner)
-        last_msg = conv.messages.order_by('-created_at').first()
-        unread_cnt = conv.messages.filter(sender=other_u, status__in=['sent', 'delivered']).count()
+        if conv.user1_id == owner.id:
+            visible_msgs = conv.messages.filter(is_deleted_for_all=False, deleted_for_user1=False)
+        else:
+            visible_msgs = conv.messages.filter(is_deleted_for_all=False, deleted_for_user2=False)
+
+        last_msg = visible_msgs.order_by('-created_at').first()
+        unread_cnt = visible_msgs.filter(sender=other_u, status__in=['sent', 'delivered']).count()
         conversations_data.append({
             'conv': conv,
             'other_user': other_u,
             'last_message': last_msg,
             'unread_count': unread_cnt,
             'is_pinned': conv.is_pinned_by(owner),
+            'has_visible_messages': visible_msgs.exists(),
         })
 
     # 4. User Groups
@@ -712,7 +722,10 @@ def chat_view(request, conversation_id):
             conv.save(update_fields=['last_message_at'])
             return redirect('chat_view', conversation_id=conv.id)
 
-    chat_messages = conv.messages.filter(is_deleted_for_all=False).order_by('created_at')
+    if conv.user1_id == owner.id:
+        chat_messages = conv.messages.filter(is_deleted_for_all=False, deleted_for_user1=False).order_by('created_at')
+    else:
+        chat_messages = conv.messages.filter(is_deleted_for_all=False, deleted_for_user2=False).order_by('created_at')
 
     return render(request, 'chat.html', {
         'user': owner,

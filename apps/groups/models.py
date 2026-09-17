@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils import timezone
 import uuid
-from cloudinary_storage.storage import MediaCloudinaryStorage
 
 class Group(models.Model):
     EPHEMERAL_CHOICES = [
@@ -20,7 +19,7 @@ class Group(models.Model):
         related_name='created_groups'
     )
     name = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='groups/', null=True, blank=True, storage=MediaCloudinaryStorage())
+    image = models.ImageField(upload_to='groups/', null=True, blank=True)
     link_id = models.CharField(max_length=100, unique=True)
     group_type = models.CharField(max_length=15, choices=GROUP_TYPE_CHOICES, default='anonymous')
     ephemeral_mode = models.CharField(max_length=10, choices=EPHEMERAL_CHOICES, default='none')
@@ -83,7 +82,7 @@ class GroupMessage(models.Model):
     sender_nickname = models.CharField(max_length=50) # Denormalized for faster lookup
     
     text = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to='group_messages/', null=True, blank=True, storage=MediaCloudinaryStorage())
+    image = models.ImageField(upload_to='group_messages/', null=True, blank=True)
     
     sender_ip = models.GenericIPAddressField(null=True, blank=True)
     sender_device = models.CharField(max_length=255, null=True, blank=True)

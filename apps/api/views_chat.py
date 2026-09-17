@@ -235,7 +235,7 @@ def api_message_action(request):
             msg.save()
             return JsonResponse({'success': True, 'action': 'edited', 'text': msg.text})
 
-        elif action == 'delete_for_me':
+        elif action in ('delete', 'delete_for_me'):
             if conv.user1_id == current_user.id:
                 msg.deleted_for_user1 = True
             else:
@@ -285,3 +285,24 @@ def api_link_preview(request):
         return JsonResponse({'success': False, 'error': 'Aperçu non disponible.'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_delete_conversation(request, conversation_id):
+    """Delete / hide all messages in a conversation for the current user."""
+    current_user = get_authenticated_user(request)
+    if not current_user:
+        return JsonResponse({'success': False, 'error': 'Non authentifié.'}, status=401)
+
+    conv = Conversation.objects.filter(id=conversation_id).first()
+    if not conv or (conv.user1_id != current_user.id and conv.user2_id != current_user.id):
+        return JsonResponse({'success': False, 'error': 'Conversation introuvable.'}, status=404)
+
+    if conv.user1_id == current_user.id:
+        conv.messages.update(deleted_for_user1=True)
+    else:
+        conv.messages.update(deleted_for_user2=True)
+
+    return JsonResponse({'success': True, 'message': 'Conversation effacée avec succès.'})
+
