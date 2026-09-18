@@ -6,9 +6,11 @@ from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
 from apps.users.models import UserProfile
-from apps.inbox.models import Conversation, ConversationMessage, MessageReaction, Notification
+from apps.inbox.models import Conversation, ConversationMessage, MessageReaction, Notification, LinkPreview
 from apps.api.views_auth import get_authenticated_user
 from apps.api.utils_ssrf import scrape_link_preview
+from apps.users.models import BlockedSender
+import re
 
 
 @csrf_exempt
@@ -104,10 +106,21 @@ def api_get_messages(request, conversation_id):
                 'text': m.reply_to.text,
                 'sender_pseudo': m.reply_to.sender.pseudo
             } if m.reply_to else None,
+            'link_preview': {
+                'url': m.link_preview.url,
+                'title': m.link_preview.title,
+                'description': m.link_preview.description,
+                'image_url': m.link_preview.image_url,
+                'domain': m.link_preview.domain,
+            } if m.link_preview else None,
             'reactions': reactions,
-            'created_at': m.created_at.strftime('%H:%M'),
+            'created_at': m.created_at.isoformat(),
             'date': m.created_at.strftime('%Y-%m-%d'),
         })
+
+    # Block status
+    am_i_blocked = BlockedSender.objects.filter(user=other_user, blocked_user=current_user).exists()
+    is_blocked_by_me = BlockedSender.objects.filter(user=current_user, blocked_user=other_user).exists()
 
     return JsonResponse({
         'success': True,
@@ -118,6 +131,8 @@ def api_get_messages(request, conversation_id):
             'photo': other_user.photo.url if other_user.photo else None,
             'theme_color': other_user.theme_color,
             'bio': other_user.bio or '',
+            'am_i_blocked': am_i_blocked,
+            'is_blocked_by_me': is_blocked_by_me,
         },
         'messages': messages
     })
@@ -162,6 +177,15 @@ def api_send_message(request, conversation_id):
     if reply_to_id:
         reply_to = ConversationMessage.objects.filter(id=reply_to_id, conversation=conv).first()
 
+    # Extract link and scrape preview
+    link_preview_obj = None
+    if text:
+        urls = re.findall(r'(https?://\S+)', text)
+        if urls:
+            preview_data = scrape_link_preview(urls[0])
+            if preview_data:
+                link_preview_obj = LinkPreview.objects.filter(url=preview_data['url']).first()
+
     msg = ConversationMessage.objects.create(
         conversation=conv,
         sender=current_user,
@@ -170,6 +194,7 @@ def api_send_message(request, conversation_id):
         media_type=media_type,
         voice_duration=voice_duration,
         reply_to=reply_to,
+        link_preview=link_preview_obj,
         status='sent'
     )
 
@@ -192,7 +217,14 @@ def api_send_message(request, conversation_id):
         'media_type': msg.media_type,
         'voice_duration': msg.voice_duration,
         'status': msg.status,
-        'created_at': msg.created_at.strftime('%H:%M'),
+        'created_at': msg.created_at.isoformat(),
+        'link_preview': {
+            'url': msg.link_preview.url,
+            'title': msg.link_preview.title,
+            'description': msg.link_preview.description,
+            'image_url': msg.link_preview.image_url,
+            'domain': msg.link_preview.domain,
+        } if msg.link_preview else None,
     }
 
     if channel_layer:
@@ -249,7 +281,14 @@ def api_send_message(request, conversation_id):
             'media_type': msg.media_type,
             'voice_duration': msg.voice_duration,
             'status': msg.status,
-            'created_at': msg.created_at.strftime('%H:%M'),
+            'created_at': msg.created_at.isoformat(),
+            'link_preview': {
+                'url': msg.link_preview.url,
+                'title': msg.link_preview.title,
+                'description': msg.link_preview.description,
+                'image_url': msg.link_preview.image_url,
+                'domain': msg.link_preview.domain,
+            } if msg.link_preview else None,
         }
     })
 
@@ -358,3 +397,81 @@ def api_delete_conversation(request, conversation_id):
 
     return JsonResponse({'success': True, 'message': 'Conversation effacée avec succès.'})
 
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_conversation_profile(request, conversation_id):
+    """Get the profile of a discussion (media, start date, block status)."""
+    current_user = get_authenticated_user(request)
+    if not current_user:
+        return JsonResponse({'success': False, 'error': 'Non authentifié.'}, status=401)
+
+    conv = Conversation.objects.filter(id=conversation_id).first()
+    if not conv or (conv.user1_id != current_user.id and conv.user2_id != current_user.id):
+        return JsonResponse({'success': False, 'error': 'Conversation introuvable.'}, status=404)
+
+    other_user = conv.get_other_user(current_user)
+
+    # Media messages
+    media_qs = conv.messages.filter(is_deleted_for_all=False).exclude(media_file="").exclude(media_file__isnull=True).order_by('-created_at')
+    
+    # Filter deleted for current user
+    if conv.user1_id == current_user.id:
+        media_qs = media_qs.filter(deleted_for_user1=False)
+    else:
+        media_qs = media_qs.filter(deleted_for_user2=False)
+
+    media_list = []
+    for m in media_qs:
+        if m.media_file:
+            media_list.append({
+                'id': str(m.id),
+                'media_url': m.media_file.url,
+                'media_type': m.media_type,
+                'created_at': m.created_at.isoformat()
+            })
+
+    # Block status
+    am_i_blocked = BlockedSender.objects.filter(user=other_user, blocked_user=current_user).exists()
+    is_blocked_by_me = BlockedSender.objects.filter(user=current_user, blocked_user=other_user).exists()
+
+    return JsonResponse({
+        'success': True,
+        'conversation': {
+            'id': str(conv.id),
+            'created_at': conv.created_at.isoformat(),
+        },
+        'other_user': {
+            'id': str(other_user.id),
+            'pseudo': other_user.pseudo,
+            'photo': other_user.photo.url if other_user.photo else None,
+            'bio': other_user.bio,
+            'am_i_blocked': am_i_blocked,
+            'is_blocked_by_me': is_blocked_by_me,
+        },
+        'media_list': media_list
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_toggle_block(request, user_id):
+    """Toggle block status for a specific user."""
+    current_user = get_authenticated_user(request)
+    if not current_user:
+        return JsonResponse({'success': False, 'error': 'Non authentifié.'}, status=401)
+
+    target_user = UserProfile.objects.filter(id=user_id).first()
+    if not target_user:
+        return JsonResponse({'success': False, 'error': 'Utilisateur introuvable.'}, status=404)
+
+    block, created = BlockedSender.objects.get_or_create(
+        user=current_user,
+        blocked_user=target_user
+    )
+
+    if not created:
+        block.delete()
+        return JsonResponse({'success': True, 'is_blocked_by_me': False, 'message': 'Utilisateur débloqué.'})
+    
+    return JsonResponse({'success': True, 'is_blocked_by_me': True, 'message': 'Utilisateur bloqué.'})

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, X, Trash2, Maximize2, Ghost } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function InboxDeck() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [messages, setMessages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,12 @@ export default function InboxDeck() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-white">Chargement...</div>;
+    return (
+      <div className="h-[100dvh] bg-[#0B0E14] text-white flex flex-col pt-12 px-4 space-y-4">
+        <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse mb-8"></div>
+        <div className="w-full h-[60vh] bg-[#161D2B] rounded-3xl animate-pulse"></div>
+      </div>
+    );
   }
 
   return (

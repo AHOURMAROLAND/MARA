@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Search, Flashlight, Share2 } from 'lucide-react';
+import { ChevronLeft, Share2, Search, UserPlus, X, Copy, Flashlight } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function AddContact() {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [tab, setTab] = useState('search');
   const [isDiscoverable, setIsDiscoverable] = useState(true);
@@ -93,10 +95,10 @@ export default function AddContact() {
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
+        showToast(data.message, 'success');
         setResults(results.map(r => r.id === userId ? { ...r, pending_invitation: true } : r));
       } else {
-        alert(data.error || "Erreur d'invitation");
+        showToast(data.error || "Erreur d'invitation", 'error');
       }
     } catch (err) {
       console.error(err);
@@ -110,7 +112,7 @@ export default function AddContact() {
       navigator.share({ title: `Ajoute @${userProfile.pseudo} sur MARA`, url }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url);
-      alert('Lien copié !');
+      showToast('Lien copié !', 'success');
     }
   };
 

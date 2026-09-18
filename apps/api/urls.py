@@ -25,6 +25,8 @@ urlpatterns = [
     path('conversations/<uuid:conversation_id>/messages/', views_chat.api_get_messages, name='get_messages'),
     path('conversations/<uuid:conversation_id>/send/', views_chat.api_send_message, name='send_message'),
     path('conversations/<uuid:conversation_id>/delete/', views_chat.api_delete_conversation, name='delete_conversation'),
+    path('conversations/<uuid:conversation_id>/profile/', views_chat.api_conversation_profile, name='conversation_profile'),
+    path('users/<uuid:user_id>/block/', views_chat.api_toggle_block, name='toggle_block'),
     path('messages/action/', views_chat.api_message_action, name='message_action'),
     path('link-preview/', views_chat.api_link_preview, name='link_preview'),
 
@@ -43,6 +45,7 @@ urlpatterns = [
     path('stories/create/', views_stories.api_create_story, name='create_story'),
     path('stories/<uuid:story_id>/view/', views_stories.api_mark_story_viewed, name='view_story'),
     path('stories/<uuid:story_id>/react/', views_stories.api_story_react, name='react_story'),
+    path('stories/<uuid:story_id>/viewers/', views_stories.api_story_viewers, name='story_viewers'),
 
     # Groupes
     path('groups/', views_groups.api_list_groups, name='list_groups'),

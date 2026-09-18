@@ -164,6 +164,7 @@ class ConversationMessage(models.Model):
     voice_duration = models.IntegerField(default=0, help_text="Durée audio en secondes")
 
     reply_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
+    link_preview = models.ForeignKey('LinkPreview', null=True, blank=True, on_delete=models.SET_NULL, related_name='messages')
     is_pinned = models.BooleanField(default=False)
     is_forwarded = models.BooleanField(default=False)
     is_edited = models.BooleanField(default=False)

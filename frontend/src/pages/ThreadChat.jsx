@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, MoreHorizontal, Lock, Send } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function ThreadChat() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [searchParams] = useSearchParams();
   const threadId = searchParams.get('id');
   
@@ -87,7 +89,7 @@ export default function ThreadChat() {
       if (data.success && data.revealed) {
         navigate(`/chat?id=${data.conversation_id}`);
       } else {
-        alert(data.message || 'Impossible de révéler.');
+        showToast(data.message || 'Impossible de révéler.', 'error');
       }
     } catch (err) {
       console.error('Error revealing:', err);
@@ -110,7 +112,32 @@ export default function ThreadChat() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-white">Chargement...</div>;
+    return (
+      <div className="h-[100dvh] bg-[#0B0E14] text-white flex flex-col relative overflow-hidden">
+        {/* Skeleton Header */}
+        <header className="px-4 py-4 flex items-center justify-between border-b border-white/5 bg-[#0B0E14]/90 z-40">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse"></div>
+            <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse"></div>
+            <div className="w-32 h-5 bg-white/10 rounded-full animate-pulse"></div>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse"></div>
+        </header>
+
+        {/* Skeleton Messages */}
+        <main className="flex-1 overflow-hidden px-4 pt-6 flex flex-col gap-6">
+          <div className="flex justify-start">
+            <div className="w-48 h-12 bg-white/5 rounded-3xl rounded-bl-sm animate-pulse"></div>
+          </div>
+          <div className="flex justify-end">
+            <div className="w-32 h-10 bg-mara-pink/20 rounded-3xl rounded-br-sm animate-pulse"></div>
+          </div>
+          <div className="flex justify-start">
+            <div className="w-64 h-16 bg-white/5 rounded-3xl rounded-bl-sm animate-pulse"></div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (!threadData) {

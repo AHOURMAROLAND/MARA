@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Settings, QrCode, LogOut, Mail } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 import BottomNav from '../components/BottomNav';
 
 export default function ProfileMe() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ export default function ProfileMe() {
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url);
-      alert('Lien copié !');
+      showToast('Lien copié !', 'success');
     }
   };
 
@@ -52,7 +54,14 @@ export default function ProfileMe() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-white">Chargement...</div>;
+    return (
+      <div className="min-h-screen bg-[#0B0E14] pb-24 relative flex flex-col items-center pt-10">
+        <div className="w-24 h-24 rounded-full bg-white/10 animate-pulse mb-4"></div>
+        <div className="w-32 h-6 bg-white/10 rounded-full animate-pulse mb-2"></div>
+        <div className="w-48 h-4 bg-white/5 rounded-full animate-pulse mb-8"></div>
+        <div className="w-[90%] max-w-sm h-64 bg-[#161D2B] rounded-3xl animate-pulse"></div>
+      </div>
+    );
   }
 
   if (!user) {
@@ -71,7 +80,7 @@ export default function ProfileMe() {
         </button>
         <h1 className="text-sm font-extrabold text-white">Mon Profil</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => alert('Les paramètres seront disponibles bientôt !')} className="w-10 h-10 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-theme-muted hover:text-white transition-colors">
+          <button onClick={() => showToast('Les paramètres seront disponibles bientôt !')} className="w-10 h-10 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-theme-muted hover:text-white transition-colors">
             <Settings className="w-4 h-4" />
           </button>
           <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center text-theme-muted hover:text-red-400 transition-colors">

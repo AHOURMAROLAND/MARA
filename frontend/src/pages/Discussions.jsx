@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import useWebSocket from '../hooks/useWebSocket';
+import { formatDate } from '../utils/formatDate';
 
 export default function Discussions() {
   const navigate = useNavigate();
@@ -152,32 +153,86 @@ export default function Discussions() {
             <span className="text-[10px] font-bold text-theme-muted">Ajouter</span>
           </div>
           
-          {stories.map(story => (
-            <div key={story.user_id} onClick={() => navigate(`/story?user_id=${story.user_id}`)} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center bg-[#161D2B] text-lg font-bold border-2 border-[#0B0E14] ${!story.all_viewed ? 'story-ring-active' : 'opacity-70'}`}>
-                {story.photo ? (
-                  <img src={story.photo} alt={story.pseudo} className="w-full h-full rounded-full object-cover p-0.5 bg-[#0B0E14]" />
-                ) : (
-                  story.pseudo.charAt(0).toUpperCase()
-                )}
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-white/10 animate-pulse"></div>
+                <div className="w-12 h-2 rounded-full bg-white/10 animate-pulse"></div>
               </div>
-              <span className="text-[10px] font-bold text-white/80">{story.pseudo}</span>
-            </div>
-          ))}
+            ))
+          ) : stories.map(story => {
+            const total = story.stories_count || 1;
+            const viewed = story.viewed_count || 0;
+            const radius = 48;
+            const circumference = 2 * Math.PI * radius;
+            const gap = total > 1 ? 4 : 0;
+            const segmentLength = (circumference - (total * gap)) / total;
+            
+            return (
+              <div key={story.user_id} onClick={() => navigate(`/story?user_id=${story.user_id}`)} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
+                <div className="relative w-16 h-16 rounded-full flex items-center justify-center bg-[#161D2B] text-lg font-bold">
+                  {/* Segmented Ring */}
+                  <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                    {Array.from({ length: total }).map((_, i) => {
+                      const isViewed = i < viewed;
+                      const offset = i * (segmentLength + gap);
+                      return (
+                        <circle
+                          key={i}
+                          cx="50"
+                          cy="50"
+                          r={radius}
+                          fill="none"
+                          stroke={isViewed ? "#333333" : "url(#mara-gradient)"}
+                          strokeWidth="4"
+                          strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
+                          strokeDashoffset={-offset}
+                          strokeLinecap="round"
+                        />
+                      );
+                    })}
+                    <defs>
+                      <linearGradient id="mara-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#FF4565" />
+                        <stop offset="100%" stopColor="#A855F7" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  
+                  <div className="w-[56px] h-[56px] rounded-full overflow-hidden bg-[#0B0E14] border border-[#0B0E14] flex items-center justify-center z-10">
+                    {story.photo ? (
+                      <img src={story.photo} alt={story.pseudo} className="w-full h-full object-cover" />
+                    ) : (
+                      story.pseudo.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-white/80">{story.pseudo}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Conversations List */}
       <main className="px-3 space-y-1 flex-1">
         {loading ? (
-          <div className="text-center text-theme-muted text-sm py-10">Chargement...</div>
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 p-3 rounded-2xl">
+              <div className="w-14 h-14 rounded-full bg-white/10 animate-pulse flex-shrink-0"></div>
+              <div className="flex-1 space-y-2">
+                <div className="w-1/3 h-4 bg-white/10 rounded-full animate-pulse"></div>
+                <div className="w-2/3 h-3 bg-white/5 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+          ))
         ) : (
           conversations.map(conv => {
             const isAnonymous = conv.isAnonymous;
             const name = isAnonymous ? 'Message anonyme' : conv.other_user.pseudo;
             const unread = conv.unread_count || 0;
             const lastMsg = conv.last_message ? conv.last_message.text : 'Aucun message';
-            const time = conv.last_message ? conv.last_message.created_at : '';
+            const time = conv.last_message ? formatDate(conv.last_message.created_at) : '';
             
             return (
               <div 

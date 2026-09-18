@@ -25,10 +25,16 @@ def api_active_stories_rail(request):
         if u.id not in user_stories_map:
             # Check if current user has viewed all stories of this user
             all_viewed = False
+            viewed_count = 0
+            total_count = 0
             if current_user:
-                viewed_count = StoryView.objects.filter(story__user=u, viewer=current_user, story__expires_at__gt=now).count()
                 total_count = Story.objects.filter(user=u, expires_at__gt=now).count()
-                all_viewed = (viewed_count >= total_count and total_count > 0)
+                if u.id == current_user.id:
+                    viewed_count = total_count
+                    all_viewed = True
+                else:
+                    viewed_count = StoryView.objects.filter(story__user=u, viewer=current_user, story__expires_at__gt=now).count()
+                    all_viewed = (viewed_count >= total_count and total_count > 0)
 
             user_stories_map[u.id] = {
                 'user_id': str(u.id),
@@ -36,6 +42,7 @@ def api_active_stories_rail(request):
                 'photo': u.photo.url if u.photo else None,
                 'theme_color': u.theme_color,
                 'stories_count': 0,
+                'viewed_count': viewed_count if current_user else 0,
                 'has_active_story': True,
                 'all_viewed': all_viewed,
             }
@@ -169,6 +176,39 @@ def api_mark_story_viewed(request, story_id):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_story_viewers(request, story_id):
+    """Get the list of viewers for a specific story (only for the author)."""
+    current_user = get_authenticated_user(request)
+    if not current_user:
+        return JsonResponse({'success': False, 'error': 'Non authentifié.'}, status=401)
+
+    story = Story.objects.filter(id=story_id).first()
+    if not story:
+        return JsonResponse({'success': False, 'error': 'Story introuvable.'}, status=404)
+
+    if story.user_id != current_user.id:
+        return JsonResponse({'success': False, 'error': 'Non autorisé.'}, status=403)
+
+    views = StoryView.objects.filter(story=story).select_related('viewer').order_by('-created_at')
+    viewers = []
+    for v in views:
+        viewers.append({
+            'user_id': str(v.viewer.id),
+            'pseudo': v.viewer.pseudo,
+            'photo': v.viewer.photo.url if v.viewer.photo else None,
+            'liked': v.liked,
+            'viewed_at': v.created_at.isoformat(),
+        })
+
+    return JsonResponse({
+        'success': True,
+        'viewers_count': len(viewers),
+        'viewers': viewers
+    })
 
 
 @csrf_exempt

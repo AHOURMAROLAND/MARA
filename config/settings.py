@@ -29,20 +29,19 @@ INSTALLED_APPS = [
     'apps.api.apps.ApiConfig',
 ]
 
-if not DEBUG:
-    INSTALLED_APPS.append('channels_postgres')
+if not DEBUG and 'channels_postgres' in INSTALLED_APPS:
+    pass
 
 # Channels configuration
 ASGI_APPLICATION = 'config.asgi.application'
 
-if not DEBUG:
-    # Production: Use PostgreSQL as channel layer (works well on Render free)
+REDIS_URL = config('REDIS_URL', default=None)
+if REDIS_URL:
     CHANNEL_LAYERS = {
         'default': {
-            'BACKEND': 'channels_postgres.core.PostgresChannelLayer',
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'URL': config('DATABASE_URL'),
+                'hosts': [REDIS_URL],
             },
         },
     }

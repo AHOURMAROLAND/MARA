@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { X, Heart, Send } from 'lucide-react';
+import { X, Heart, Send, Eye, Users } from 'lucide-react';
 
 export default function StoryViewer() {
   const navigate = useNavigate();
@@ -16,6 +16,12 @@ export default function StoryViewer() {
   const [reply, setReply] = useState('');
   const [isLiked, setIsLiked] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  
+  const [showViewers, setShowViewers] = useState(false);
+  const [viewers, setViewers] = useState([]);
+  const [loadingViewers, setLoadingViewers] = useState(false);
+  
+  const myUserId = localStorage.getItem('user_id');
 
   useEffect(() => {
     if (!userId) {
@@ -129,14 +135,36 @@ export default function StoryViewer() {
   };
 
   const handleScreenClick = (e) => {
-    // Prevent if clicking on input or buttons
-    if (e.target.closest('button') || e.target.closest('input')) return;
+    // Prevent if clicking on input or buttons or if viewers modal is open
+    if (e.target.closest('button') || e.target.closest('input') || showViewers) return;
 
     const screenWidth = window.innerWidth;
     if (e.clientX < screenWidth / 3) {
       prevStory();
     } else {
       nextStory();
+    }
+  };
+
+  const fetchViewers = async (storyId) => {
+    setLoadingViewers(true);
+    setShowViewers(true);
+    setIsPaused(true);
+    try {
+      const token = localStorage.getItem('session_token') || localStorage.getItem('reconnect_token');
+      const res = await fetch(`/api/v1/stories/${storyId}/viewers/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setViewers(data.viewers);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingViewers(false);
     }
   };
 
@@ -150,28 +178,43 @@ export default function StoryViewer() {
     <div className="fixed inset-0 z-50 bg-black text-white flex flex-col">
       {/* Background Content */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-90 flex items-center justify-center"
-        style={currentStory.media_url && currentStory.media_type !== 'audio' ? { 
-          backgroundImage: `url(${currentStory.media_url})` 
-        } : { 
-          background: currentStory.bg_gradient || '#0B0E14' 
-        }}
+        className="absolute inset-0 flex items-center justify-center bg-[#0B0E14]"
+        style={(!currentStory.media_url || currentStory.media_type === 'audio') ? { background: currentStory.bg_gradient || '#0B0E14' } : {}}
       >
+        {currentStory.media_url && currentStory.media_type !== 'audio' && (
+          <img 
+            src={currentStory.media_url} 
+            className="w-full h-full object-contain" 
+            alt="Story"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none"></div>
         {currentStory.media_type === 'audio' && currentStory.media_url && (
           <div className="z-20 w-3/4 mx-auto mb-8 bg-black/40 p-4 rounded-3xl backdrop-blur-md">
             <audio src={currentStory.media_url} controls className="w-full" autoPlay />
           </div>
         )}
-        {currentStory.text_content && (
+
+        {currentStory.media_type === 'text' && currentStory.text_content && (
           <p 
-            className="z-10 text-3xl font-extrabold px-6 text-center whitespace-pre-wrap pointer-events-none drop-shadow-lg"
+            className="z-20 text-3xl font-extrabold px-6 text-center whitespace-pre-wrap pointer-events-none drop-shadow-lg"
             style={{ color: currentStory.text_color || '#FFFFFF' }}
           >
             {currentStory.text_content}
           </p>
         )}
       </div>
+
+      {currentStory.media_type !== 'text' && currentStory.text_content && (
+        <div className="absolute bottom-24 left-0 right-0 z-20 pointer-events-none flex justify-center pb-4">
+          <p 
+            className="text-lg font-bold px-6 text-center whitespace-pre-wrap drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]"
+            style={{ color: currentStory.text_color || '#FFFFFF' }}
+          >
+            {currentStory.text_content}
+          </p>
+        </div>
+      )}
 
       {/* Progress Bars */}
       <div className="relative z-20 pt-12 px-4 flex gap-1 pointer-events-none">
@@ -223,34 +266,100 @@ export default function StoryViewer() {
       </div>
 
       {/* Bottom Action Area */}
-      <div className="relative z-30 px-4 pb-8 pt-4 flex items-center gap-3 animate-in slide-in-from-bottom-8 duration-500">
-        <button 
-          onClick={() => handleInteract('like')}
-          className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${isLiked ? 'bg-mara-pink text-white shadow-[0_0_20px_rgba(255,51,102,0.5)]' : 'bg-black/40 text-white border border-white/20 hover:bg-black/60'}`}
-        >
-          <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-        </button>
-        
-        <div className="flex-1 bg-black/40 backdrop-blur-md rounded-full flex items-center border border-white/20 pr-1.5 focus-within:border-white/50 transition-colors">
-          <input 
-            type="text" 
-            placeholder={`Répondre à ${user.pseudo}...`} 
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            onFocus={() => setIsPaused(true)}
-            onBlur={() => setIsPaused(false)}
-            className="flex-1 bg-transparent text-sm text-white px-5 py-3 outline-none placeholder:text-white/60"
-          />
-          {reply && (
-            <button 
-              onClick={() => handleInteract('reply', reply)}
-              className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 transition-transform"
-            >
-              <Send className="w-4 h-4 ml-0.5" />
-            </button>
-          )}
+      {myUserId === user.id ? (
+        <div className="relative z-30 px-4 pb-8 pt-4 flex flex-col items-center animate-in slide-in-from-bottom-8 duration-500">
+          <button 
+            onClick={() => fetchViewers(currentStory.id)}
+            className="flex flex-col items-center justify-center text-white/80 hover:text-white transition-colors"
+          >
+            <Eye className="w-6 h-6 mb-1 drop-shadow-md" />
+            <span className="text-xs font-bold drop-shadow-md">{currentStory.views_count} vues</span>
+          </button>
         </div>
-      </div>
+      ) : (
+        <div className="relative z-30 px-4 pb-8 pt-4 flex items-center gap-3 animate-in slide-in-from-bottom-8 duration-500">
+          <button 
+            onClick={() => handleInteract('like')}
+            className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all active:scale-90 ${isLiked ? 'bg-mara-pink text-white shadow-[0_0_20px_rgba(255,51,102,0.5)]' : 'bg-black/40 text-white border border-white/20 hover:bg-black/60'}`}
+          >
+            <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+          </button>
+          
+          <div className="flex-1 bg-black/40 backdrop-blur-md rounded-full flex items-center border border-white/20 pr-1.5 focus-within:border-white/50 transition-colors">
+            <input 
+              type="text" 
+              placeholder={`Répondre à ${user.pseudo}...`} 
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              onFocus={() => setIsPaused(true)}
+              onBlur={() => setIsPaused(false)}
+              className="flex-1 bg-transparent text-sm text-white px-5 py-3 outline-none placeholder:text-white/60"
+            />
+            {reply && (
+              <button 
+                onClick={() => handleInteract('reply', reply)}
+                className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 transition-transform"
+              >
+                <Send className="w-4 h-4 ml-0.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Viewers Modal */}
+      {showViewers && (
+        <div className="absolute inset-0 z-50 bg-black/80 flex flex-col justify-end animate-in fade-in">
+          <div className="bg-[#161D2B] rounded-t-3xl h-[60vh] flex flex-col animate-in slide-in-from-bottom-full duration-300 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div className="flex items-center gap-2 text-white">
+                <Eye className="w-5 h-5" />
+                <h3 className="font-extrabold text-lg">{currentStory.views_count} Vues</h3>
+              </div>
+              <button 
+                onClick={() => { setShowViewers(false); setIsPaused(false); }}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto px-4 py-2">
+              {loadingViewers ? (
+                <div className="text-center text-theme-muted py-10">Chargement...</div>
+              ) : viewers.length === 0 ? (
+                <div className="text-center text-theme-muted py-10 flex flex-col items-center gap-2">
+                  <Users className="w-10 h-10 opacity-20" />
+                  <p>Aucune vue pour l'instant</p>
+                </div>
+              ) : (
+                viewers.map((v, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded-xl transition-colors cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-black/50 overflow-hidden">
+                        {v.photo ? (
+                          <img src={v.photo} alt={v.pseudo} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center font-bold text-white bg-gradient-to-br from-mara-pink to-purple-600">
+                            {v.pseudo.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-bold text-white text-sm">{v.pseudo}</p>
+                        <p className="text-[10px] text-theme-muted">{new Date(v.viewed_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                      </div>
+                    </div>
+                    {v.liked && (
+                      <Heart className="w-5 h-5 text-mara-pink fill-current drop-shadow-[0_0_10px_rgba(255,51,102,0.8)]" />
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

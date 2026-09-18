@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Image as ImageIcon, Type, Send, Mic, Square } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function CreateStory() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const fileInputRef = useRef(null);
   
   const [file, setFile] = useState(null);
@@ -24,7 +26,11 @@ export default function CreateStory() {
     if (selectedFile) {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
-      setMode('image');
+      if (selectedFile.type.startsWith('video/')) {
+        setMode('video');
+      } else {
+        setMode('image');
+      }
     }
   };
 
@@ -59,8 +65,8 @@ export default function CreateStory() {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
     } catch (err) {
-      console.error("Microphone access denied", err);
-      alert("Accès au microphone refusé.");
+      console.error(err);
+      showToast("Accès au microphone refusé.", "error");
     }
   };
 
@@ -85,14 +91,14 @@ export default function CreateStory() {
       formData.append('media_type', mode);
       if (text) formData.append('text_content', text);
       
-      if ((mode === 'image' || mode === 'audio') && file) {
+      if ((mode === 'image' || mode === 'video' || mode === 'audio') && file) {
         formData.append('media_file', file, mode === 'audio' ? 'audio.webm' : undefined);
-      } else if (mode === 'image' && !file) {
-        alert("Veuillez sélectionner une image.");
+      } else if ((mode === 'image' || mode === 'video') && !file) {
+        showToast("Veuillez sélectionner une image.", "error");
         setLoading(false);
         return;
       } else if (mode === 'audio' && !file) {
-        alert("Veuillez enregistrer un vocal.");
+        showToast("Veuillez enregistrer un vocal.", "error");
         setLoading(false);
         return;
       }
@@ -103,15 +109,20 @@ export default function CreateStory() {
         body: formData
       });
 
-      const data = await res.json();
-      if (data.success) {
-        navigate(-1);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          showToast("Story publiée !", "success");
+          navigate(-1);
+        } else {
+          showToast(data.error || "Erreur lors de la création de la story", "error");
+        }
       } else {
-        alert(data.error || "Erreur lors de la création de la story");
+        showToast("Erreur de connexion", "error");
       }
     } catch (e) {
       console.error(e);
-      alert("Erreur de connexion");
+      showToast("Erreur de connexion", "error");
     } finally {
       setLoading(false);
     }
@@ -128,9 +139,13 @@ export default function CreateStory() {
       </header>
 
       <main className="flex-1 relative flex flex-col items-center justify-center mt-16 px-4">
-        {mode === 'image' && preview ? (
+        {(mode === 'image' || mode === 'video') && preview ? (
           <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl relative">
-            <img src={preview} alt="Preview" className="w-full h-full object-cover max-h-[60vh]" />
+            {mode === 'video' ? (
+              <video src={preview} className="w-full h-full object-cover max-h-[60vh]" autoPlay loop muted playsInline />
+            ) : (
+              <img src={preview} alt="Preview" className="w-full h-full object-cover max-h-[60vh]" />
+            )}
             <input 
               type="text"
               placeholder="Ajouter un texte..."

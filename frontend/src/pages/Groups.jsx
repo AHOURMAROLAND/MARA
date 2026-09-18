@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Plus, ChevronLeft } from 'lucide-react';
+import BottomNav from '../components/BottomNav';
 
 export default function Groups() {
   const navigate = useNavigate();
@@ -43,9 +44,18 @@ export default function Groups() {
         </button>
       </header>
 
-      <main className="flex-1 px-4 py-4 space-y-3 overflow-y-auto">
+      {/* List */}
+      <main className="px-5 space-y-4 flex-1">
         {loading ? (
-          <div className="text-center text-theme-muted text-sm mt-10">Chargement...</div>
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[#161D2B]/50 border border-white/5 animate-pulse">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex-shrink-0"></div>
+              <div className="flex-1 space-y-2">
+                <div className="w-1/2 h-4 bg-white/10 rounded-full"></div>
+                <div className="w-3/4 h-3 bg-white/5 rounded-full"></div>
+              </div>
+            </div>
+          ))
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center mt-20 space-y-4">
             <div className="w-16 h-16 bg-[#161D2B] rounded-full flex items-center justify-center">
@@ -74,6 +84,8 @@ export default function Groups() {
           ))
         )}
       </main>
+      
+      <BottomNav />
     </div>
   );
 }
