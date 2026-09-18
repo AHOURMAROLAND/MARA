@@ -24,6 +24,9 @@ export default function Login() {
       const data = await res.json();
       
       if (res.ok && data.success !== false) {
+        localStorage.setItem('reconnect_token', data.user.reconnect_token);
+        localStorage.setItem('session_token', data.user.token);
+        localStorage.setItem('pseudo', data.user.pseudo);
         navigate('/discussions');
       } else {
         setErrorMsg(data.error || 'Identifiants incorrects.');

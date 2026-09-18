@@ -24,7 +24,9 @@ export default function Splash() {
       <div className="flex-1 flex flex-col justify-center items-center">
         <div 
           className={`w-28 h-28 bg-gradient-to-tr from-mara-pink to-purple-600 rounded-3xl shadow-[0_0_40px_rgba(255,51,102,0.3)] transition-all duration-1000 transform ${isVisible ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}
-        ></div>
+        >
+          <img src="/preview.webp" alt="MARA Logo" className="w-full h-full object-cover rounded-3xl" />
+        </div>
         <h1 className={`mt-8 text-4xl font-extrabold text-white tracking-tight transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
           MARA
         </h1>

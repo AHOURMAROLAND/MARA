@@ -6,8 +6,14 @@ import ProfileMe from './pages/ProfileMe';
 import InboxDeck from './pages/InboxDeck';
 import Discussions from './pages/Discussions';
 import ThreadChat from './pages/ThreadChat';
+import Chat from './pages/Chat';
 import StoryViewer from './pages/StoryViewer';
 import AddContact from './pages/AddContact';
+import Groups from './pages/Groups';
+import GroupChat from './pages/GroupChat';
+import CreateStory from './pages/CreateStory';
+import SendAnonymous from './pages/SendAnonymous';
+import Notifications from './pages/Notifications';
 
 function App() {
   return (
@@ -21,9 +27,15 @@ function App() {
             <Route path="/profile" element={<ProfileMe />} />
             <Route path="/inbox" element={<InboxDeck />} />
             <Route path="/discussions" element={<Discussions />} />
-            <Route path="/chat" element={<ThreadChat />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/thread" element={<ThreadChat />} />
             <Route path="/story" element={<StoryViewer />} />
+            <Route path="/story/create" element={<CreateStory />} />
             <Route path="/new" element={<AddContact />} />
+            <Route path="/groups" element={<Groups />} />
+            <Route path="/group" element={<GroupChat />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/m/send/:link_id" element={<SendAnonymous />} />
             {/* Redirection fallback */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

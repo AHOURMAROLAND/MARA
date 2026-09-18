@@ -1,33 +1,129 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
+import useWebSocket from '../hooks/useWebSocket';
 
 export default function Discussions() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [stories, setStories] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const stories = [
-    { id: 1, pseudo: 'Yuna', isUnseen: true },
-    { id: 2, pseudo: 'Alex', isUnseen: true },
-    { id: 3, pseudo: 'Sarah', isUnseen: false },
-    { id: 4, pseudo: 'Mike', isUnseen: false },
-  ];
+  const [myUserId, setMyUserId] = useState(localStorage.getItem('user_id') || null);
 
-  const conversations = [
-    { id: 1, name: 'Yuna', lastMessage: "On se voit ce soir ?", time: '12:30', unread: 2, isGroup: false },
-    { id: 2, name: 'Message anonyme', lastMessage: "Quelqu'un t'a envoyé...", time: '11:15', unread: 1, isGroup: false, isAnonymous: true },
-    { id: 3, name: 'Projet X', lastMessage: "Alex: J'ai fini ma partie", time: 'Hier', unread: 0, isGroup: true },
-    { id: 4, name: 'Sarah', lastMessage: "Mdrrr, t'es grave", time: 'Hier', unread: 0, isGroup: false },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('session_token') || localStorage.getItem('reconnect_token');
+        const headers = {
+          'Authorization': `Bearer ${token}`
+        };
+
+        const [profileRes, convRes, storyRes, threadRes] = await Promise.all([
+          fetch('/api/v1/profile/me/', { headers }),
+          fetch('/api/v1/conversations/', { headers }),
+          fetch('/api/v1/stories/rail/', { headers }),
+          fetch('/api/v1/threads/', { headers })
+        ]);
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.success) {
+            setMyUserId(profileData.user.id);
+            localStorage.setItem('user_id', profileData.user.id);
+          }
+        }
+
+        let allConvs = [];
+
+        if (convRes.ok) {
+          const convData = await convRes.json();
+          if (convData.success) {
+            allConvs = [...allConvs, ...convData.conversations.map(c => ({...c, isAnonymous: false}))];
+          }
+        }
+
+        if (threadRes.ok) {
+          const threadData = await threadRes.json();
+          if (threadData.success) {
+            const threads = threadData.threads.map(t => ({
+              id: t.id,
+              isAnonymous: true,
+              other_user: { pseudo: 'Message anonyme' },
+              last_message: { text: t.last_message.text, created_at: t.last_message.created_at },
+              unread_count: t.status === 'active' ? 1 : 0
+            }));
+            allConvs = [...allConvs, ...threads];
+          }
+        }
+
+        setConversations(allConvs);
+
+        if (storyRes.ok) {
+          const storyData = await storyRes.json();
+          if (storyData.success) setStories(storyData.stories);
+        }
+      } catch (err) {
+        console.error('Error fetching discussions:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // The import useWebSocket was moved to top
+  useWebSocket(
+    myUserId ? `ws://${window.location.host}/ws/notifications/${myUserId}/` : null,
+    (data) => {
+      if (data.type === 'conversation_update') {
+        const updatedMsg = data.message;
+        const convId = data.conversation_id;
+        
+        setConversations(prev => {
+          let updated = [...prev];
+          const idx = updated.findIndex(c => c.id === convId);
+          if (idx !== -1) {
+            updated[idx] = {
+              ...updated[idx],
+              last_message: {
+                text: updatedMsg.text || 'Média partagé',
+                created_at: updatedMsg.created_at
+              },
+              unread_count: updatedMsg.sender_id === myUserId ? updated[idx].unread_count : (updated[idx].unread_count || 0) + 1
+            };
+            // Move to top
+            const [item] = updated.splice(idx, 1);
+            updated.unshift(item);
+          } else {
+            // Need to fetch full conv details if not found (or optionally just push a placeholder)
+            // A simple page refresh could be forced here, or we fetch just this conv.
+            // For now, let's keep it simple.
+          }
+          return updated;
+        });
+      }
+    }
+  );
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-white flex flex-col pb-24 relative overflow-y-auto hide-scrollbar">
       {/* Header */}
       <header className="px-5 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-[#0B0E14]/90 backdrop-blur-md z-40">
         <h1 className="text-3xl font-extrabold tracking-tight">Discussions</h1>
-        <div className="w-10 h-10 rounded-full story-ring-active flex items-center justify-center bg-[#161D2B]">
-          <span className="font-bold">A</span>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate('/notifications')}
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-[#161D2B] hover:bg-white/10 transition-colors relative"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-mara-pink"></div>
+          </button>
+          <div className="w-10 h-10 rounded-full story-ring-active flex items-center justify-center bg-[#161D2B]">
+            <span className="font-bold">{localStorage.getItem('pseudo')?.charAt(0).toUpperCase() || 'A'}</span>
+          </div>
         </div>
       </header>
 
@@ -49,17 +145,21 @@ export default function Discussions() {
       <div className="px-2 mb-8">
         <div className="flex overflow-x-auto hide-scrollbar gap-4 px-3 pb-2">
           {/* Add Story Button */}
-          <div className="flex flex-col items-center gap-2 flex-shrink-0">
-            <button className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center text-white/50 bg-[#161D2B] hover:bg-white/5 transition-colors">
+          <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => navigate('/story/create')}>
+            <button className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center text-white/50 bg-[#161D2B] hover:bg-white/5 transition-colors pointer-events-none">
               <span className="text-2xl">+</span>
             </button>
             <span className="text-[10px] font-bold text-theme-muted">Ajouter</span>
           </div>
           
           {stories.map(story => (
-            <div key={story.id} onClick={() => navigate('/story')} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center bg-[#161D2B] text-lg font-bold border-2 border-[#0B0E14] ${story.isUnseen ? 'story-ring-active' : 'opacity-70'}`}>
-                {story.pseudo.charAt(0)}
+            <div key={story.user_id} onClick={() => navigate(`/story?user_id=${story.user_id}`)} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center bg-[#161D2B] text-lg font-bold border-2 border-[#0B0E14] ${!story.all_viewed ? 'story-ring-active' : 'opacity-70'}`}>
+                {story.photo ? (
+                  <img src={story.photo} alt={story.pseudo} className="w-full h-full rounded-full object-cover p-0.5 bg-[#0B0E14]" />
+                ) : (
+                  story.pseudo.charAt(0).toUpperCase()
+                )}
               </div>
               <span className="text-[10px] font-bold text-white/80">{story.pseudo}</span>
             </div>
@@ -69,45 +169,52 @@ export default function Discussions() {
 
       {/* Conversations List */}
       <main className="px-3 space-y-1 flex-1">
-        {conversations.map(conv => (
-          <div 
-            key={conv.id} 
-            onClick={() => conv.isAnonymous ? navigate('/chat') : navigate('/chat')}
-            className="flex items-center gap-4 p-3 rounded-2xl hover:bg-[#161D2B]/50 transition-colors cursor-pointer active:scale-[0.98]"
-          >
-            {/* Avatar */}
-            <div className="relative">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold ${conv.isAnonymous ? 'bg-gradient-to-tr from-mara-pink to-purple-600 blur-[1px]' : 'bg-[#161D2B]'}`}>
-                {conv.isAnonymous ? '?' : conv.name.charAt(0)}
-              </div>
-              {conv.isGroup && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0B0E14] rounded-full flex items-center justify-center border-2 border-[#0B0E14]">
-                  <span className="text-[8px]">👥</span>
-                </div>
-              )}
-            </div>
+        {loading ? (
+          <div className="text-center text-theme-muted text-sm py-10">Chargement...</div>
+        ) : (
+          conversations.map(conv => {
+            const isAnonymous = conv.isAnonymous;
+            const name = isAnonymous ? 'Message anonyme' : conv.other_user.pseudo;
+            const unread = conv.unread_count || 0;
+            const lastMsg = conv.last_message ? conv.last_message.text : 'Aucun message';
+            const time = conv.last_message ? conv.last_message.created_at : '';
             
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-end mb-1">
-                <h3 className={`font-extrabold truncate text-base ${conv.unread > 0 ? 'text-white' : 'text-white/90'}`}>{conv.name}</h3>
-                <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${conv.unread > 0 ? 'text-mara-pink' : 'text-theme-muted'}`}>{conv.time}</span>
-              </div>
-              <div className="flex justify-between items-center gap-2">
-                <p className={`text-sm truncate ${conv.unread > 0 ? 'text-white font-bold' : 'text-theme-muted font-medium'}`}>
-                  {conv.lastMessage}
-                </p>
-                {conv.unread > 0 ? (
-                  <div className="w-5 h-5 rounded-full bg-mara-pink text-white flex items-center justify-center text-[10px] font-bold shadow-lg shadow-mara-pink/20">
-                    {conv.unread}
+            return (
+              <div 
+                key={conv.id} 
+                onClick={() => navigate(isAnonymous ? `/thread?id=${conv.id}` : `/chat?id=${conv.id}`)}
+                className="flex items-center gap-4 p-3 rounded-2xl hover:bg-[#161D2B]/50 transition-colors cursor-pointer active:scale-[0.98]"
+              >
+                {/* Avatar */}
+                <div className="relative">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold ${isAnonymous ? 'bg-gradient-to-tr from-mara-pink to-purple-600 blur-[1px]' : 'bg-[#161D2B]'}`}>
+                    {isAnonymous ? '?' : name.charAt(0).toUpperCase()}
                   </div>
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-theme-muted/50" />
-                )}
+                </div>
+                
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-end mb-1">
+                    <h3 className={`font-extrabold truncate text-base ${unread > 0 ? 'text-white' : 'text-white/90'}`}>{name}</h3>
+                    <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${unread > 0 ? 'text-mara-pink' : 'text-theme-muted'}`}>{time}</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <p className={`text-sm truncate ${unread > 0 ? 'text-white font-bold' : 'text-theme-muted font-medium'}`}>
+                      {lastMsg}
+                    </p>
+                    {unread > 0 ? (
+                      <div className="w-5 h-5 rounded-full bg-mara-pink text-white flex items-center justify-center text-[10px] font-bold shadow-lg shadow-mara-pink/20">
+                        {unread}
+                      </div>
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-theme-muted/50" />
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          })
+        )}
       </main>
 
       <BottomNav />

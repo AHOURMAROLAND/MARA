@@ -1,29 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, X, Trash2, Maximize2 } from 'lucide-react';
+import { ArrowLeft, MessageCircle, X, Trash2, Maximize2, Ghost } from 'lucide-react';
 
 export default function InboxDeck() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState([
-    { id: 1, text: "J'adore ce que tu fais !", time: "Il y a 2h" },
-    { id: 2, text: "C'est quoi ton secret pour être si cool ?", time: "Il y a 5h" },
-    { id: 3, text: "Salut, on peut discuter ?", time: "Hier" }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDeck = async () => {
+      try {
+        const token = localStorage.getItem('session_token') || localStorage.getItem('reconnect_token');
+        const res = await fetch('/api/v1/inbox/deck/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setMessages(data.cards);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching inbox deck:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDeck();
+  }, []);
 
   const currentMsg = messages[currentIndex];
 
   const nextMessage = () => {
     if (currentIndex < messages.length - 1) {
       setCurrentIndex(prev => prev + 1);
+    } else {
+      setCurrentIndex(messages.length); // Out of bounds = empty state
     }
   };
 
-  const handleAction = (action) => {
-    // Handle action here (e.g. Delete, Ignore, Reply)
-    console.log(`Action: ${action} on message ${currentMsg?.id}`);
-    nextMessage();
+  const handleAction = async (action) => {
+    if (!currentMsg) return;
+    const token = localStorage.getItem('session_token') || localStorage.getItem('reconnect_token');
+
+    if (action === 'reply' && currentMsg.thread_id) {
+      navigate(`/thread?id=${currentMsg.thread_id}`);
+      return;
+    }
+
+    if (action === 'story') {
+      try {
+        await fetch(`/api/v1/inbox/repost-story/${currentMsg.id}/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        alert('Ajouté en story !');
+      } catch (err) {
+        console.error('Error reposting to story:', err);
+      }
+      nextMessage();
+      return;
+    }
+
+    // Ignore or Delete just skips for now (UI only)
+    if (action === 'ignore' || action === 'delete') {
+      nextMessage();
+    }
   };
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-white">Chargement...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-white flex flex-col">
@@ -34,7 +82,7 @@ export default function InboxDeck() {
         </button>
         <div className="text-center">
           <h1 className="text-sm font-extrabold text-white">Boîte Anonyme</h1>
-          <p className="text-[10px] text-theme-muted uppercase tracking-widest">{messages.length - currentIndex} Nouveaux</p>
+          <p className="text-[10px] text-theme-muted uppercase tracking-widest">{messages.length > 0 ? messages.length - currentIndex : 0} Nouveaux</p>
         </div>
         <div className="w-10"></div> {/* Spacer */}
       </header>
@@ -42,16 +90,23 @@ export default function InboxDeck() {
       {/* Main Deck Area */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 pb-12">
         {currentMsg ? (
-          <div className="w-full max-w-sm aspect-[4/5] bg-gradient-to-br from-[#161D2B] to-[#111622] border border-white/10 rounded-[2rem] shadow-2xl relative flex flex-col items-center justify-center p-8 text-center animate-in slide-in-from-bottom-8 fade-in duration-500">
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[10px] uppercase font-bold text-theme-muted tracking-widest">
-              {currentMsg.time}
+          <div className="w-full max-w-sm aspect-[4/5] bg-gradient-to-br from-[#161D2B] to-[#111622] border border-white/10 rounded-[2rem] shadow-2xl relative flex flex-col items-center justify-center p-8 text-center animate-in slide-in-from-bottom-8 fade-in duration-500 overflow-hidden">
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[10px] uppercase font-bold text-theme-muted tracking-widest z-10 bg-black/50 px-3 py-1 rounded-full">
+              {currentMsg.created_at}
             </div>
             
-            <p className="text-2xl font-extrabold text-white leading-tight mb-8">
+            {currentMsg.image_url ? (
+              <div className="absolute inset-0 z-0">
+                <img src={currentMsg.image_url} alt="Image reçue" className="w-full h-full object-cover opacity-60" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+              </div>
+            ) : null}
+
+            <p className="text-2xl font-extrabold text-white leading-tight mb-8 z-10 relative">
               "{currentMsg.text}"
             </p>
 
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0B0E14] to-transparent rounded-b-[2rem]">
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0B0E14] to-transparent rounded-b-[2rem] z-10">
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => handleAction('ignore')}
@@ -89,7 +144,7 @@ export default function InboxDeck() {
         ) : (
           <div className="text-center animate-in fade-in duration-500">
             <div className="w-20 h-20 bg-[#161D2B] rounded-full mx-auto flex items-center justify-center mb-6 border border-white/5">
-              <span className="text-3xl">👻</span>
+              <Ghost className="w-10 h-10 text-white/50" />
             </div>
             <h2 className="text-xl font-extrabold text-white mb-2">Tout est lu !</h2>
             <p className="text-theme-muted text-sm">Partage ton lien pour recevoir d'autres messages secrets.</p>

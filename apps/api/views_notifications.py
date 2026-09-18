@@ -14,8 +14,8 @@ def api_list_notifications(request):
     if not current_user:
         return JsonResponse({'success': False, 'error': 'Non authentifié.'}, status=401)
 
-    notifs = current_user.notifications.all()[:50]
-    unread_count = current_user.notifications.filter(is_read=False).count()
+    notifs = current_user.notifications.exclude(verb='new_message')[:50]
+    unread_count = current_user.notifications.exclude(verb='new_message').filter(is_read=False).count()
 
     results = []
     for n in notifs:

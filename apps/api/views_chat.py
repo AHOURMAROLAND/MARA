@@ -176,14 +176,66 @@ def api_send_message(request, conversation_id):
     conv.last_message_at = timezone.now()
     conv.save()
 
-    # Trigger Notification
+    # Trigger Realtime WebSockets Broadcast
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    channel_layer = get_channel_layer()
+
+    msg_data = {
+        'id': str(msg.id),
+        'is_me': False, # will be overridden client-side based on myUserId
+        'sender_id': str(current_user.id),
+        'sender_pseudo': current_user.pseudo,
+        'sender_photo': current_user.photo.url if current_user.photo else None,
+        'text': msg.text,
+        'media_url': msg.media_file.url if msg.media_file else None,
+        'media_type': msg.media_type,
+        'voice_duration': msg.voice_duration,
+        'status': msg.status,
+        'created_at': msg.created_at.strftime('%H:%M'),
+    }
+
+    if channel_layer:
+        # Broadcast to Chat Room
+        async_to_sync(channel_layer.group_send)(
+            f'direct_chat_{conv.id}',
+            {
+                'type': 'chat_message_broadcast',
+                'message': msg_data
+            }
+        )
+        # Broadcast to Discussions List (recipient only, or both)
+        async_to_sync(channel_layer.group_send)(
+            f'user_notifications_{other_user.id}',
+            {
+                'type': 'send_notification',
+                'notification': {
+                    'type': 'conversation_update',
+                    'conversation_id': str(conv.id),
+                    'message': msg_data
+                }
+            }
+        )
+        async_to_sync(channel_layer.group_send)(
+            f'user_notifications_{current_user.id}',
+            {
+                'type': 'send_notification',
+                'notification': {
+                    'type': 'conversation_update',
+                    'conversation_id': str(conv.id),
+                    'message': msg_data
+                }
+            }
+        )
+
+    # Trigger Notification DB
     Notification.objects.create(
         recipient=other_user,
         actor=current_user,
         verb='new_message',
         title=f"@{current_user.pseudo}",
         body=text[:100] if text else f"Nouveau média ({media_type})",
-        target_url=f"/chat/{str(conv.id)}/"
+        target_url=f"/chat?id={str(conv.id)}"
     )
 
     return JsonResponse({
